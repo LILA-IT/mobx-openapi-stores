@@ -8,11 +8,12 @@ import { type ApiType } from '../types/ApiType';
 import { LoadingStore } from './LoadingStore';
 
 export class ApiStore<
-  T extends ApiType,
-  Config extends Configuration = T extends ApiType<infer C> ? C : never,
+  TApi extends ApiType,
+  TConfig extends Configuration = TApi extends ApiType<infer C> ? C : never,
 > extends LoadingStore {
-  api: T | null = null;
+  api: TApi | null = null;
   name: string = '';
+
   constructor(name: string) {
     super();
     makeObservable(this, {
@@ -21,17 +22,17 @@ export class ApiStore<
       apiIsSet: computed,
       api: observable,
       name: false,
-      _apiCall: flow,
+      apiCall: flow,
     });
     this.name = name;
     this.setIsLoading(true);
   }
 
-  setApi = (api: T) => {
+  setApi = (api: TApi) => {
     this.api = api;
   };
 
-  initApi(config: Config) {
+  initApi(config: TConfig) {
     throw new Error('initApi is not implemented by ' + this.name);
   }
 
@@ -57,15 +58,15 @@ export class ApiStore<
   );
   */
 
-  _apiCall = flow(
+  apiCall = flow(
     toFlowGeneratorFunction(
       async <
-        Api extends ApiType = T,
+        Api extends ApiType = TApi,
         Endpoint extends keyof Api = keyof Api,
         // @ts-expect-error marks as error but works
         Args extends Parameters<Api[Endpoint]>[0] = Parameters<
           // @ts-expect-error marks as error but works
-          Api[Endpoint]
+          TApi[Endpoint]
         >[0],
       >(
         apiCall: Endpoint,

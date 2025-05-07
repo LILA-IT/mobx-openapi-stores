@@ -13,6 +13,10 @@ import find from 'lodash/find';
 export type CollectionType<TSingle extends SingleType = SingleType> =
   (Partial<TSingle> & { id: number | string })[];
 
+type FetchOptions = {
+  useCache?: boolean;
+};
+
 export class CollectionStore<
   TApi extends ApiType,
   TSingle extends SingleType,
@@ -31,8 +35,8 @@ export class CollectionStore<
       editItem: action,
       removeItem: action,
       getById: false,
-      __apiCall: flow,
       _fetch: flow,
+      _fetchAll: flow,
       setItem: action,
     });
   }
@@ -95,21 +99,29 @@ export class CollectionStore<
   _fetch = flow(
     toFlowGeneratorFunction(
       async <
-        Endpoint extends keyof TApi,
+        Endpoint extends keyof TApi = keyof TApi,
         // @ts-expect-error marks as error but works
-        Args extends Parameters<TApi[Endpoint]>[0],
+        Args extends Parameters<TApi[Endpoint]>[0] = Parameters<
+          // @ts-expect-error marks as error but works
+          TApi[Endpoint]
+        >[0],
       >(
         endpoint: Endpoint,
-        args: Args & {
-          id: ArrayElement<TCollection>['id'];
-        },
-        useCache = false,
+        args: Args extends undefined
+          ? never
+          : Args & {
+              id: ArrayElement<TCollection>['id'];
+            },
+        { useCache = false }: FetchOptions = {},
       ) => {
         let item: TSingle | ArrayElement<TCollection> | undefined;
         if (useCache)
           item = await new Promise((resolve) => resolve(this.getById(args.id)));
         if (!useCache || !item) {
-          item = (await this.__apiCall(endpoint, args)) as unknown as TSingle;
+          item = (await this.apiCall<TApi>(
+            endpoint,
+            args,
+          )) as unknown as TSingle;
           if (!item) return;
           this.setItem(item);
         }
@@ -118,17 +130,97 @@ export class CollectionStore<
     ),
   );
 
-  __apiCall = flow(
+  _fetchAll = flow(
     toFlowGeneratorFunction(
       async <
         Endpoint extends keyof TApi,
-        // @ts-expect-error lodash types are not correct
-        Args extends Parameters<TApi[Endpoint]>[0],
+        // @ts-expect-error marks as error but works
+        Args extends Parameters<TApi[Endpoint]>[0] = Parameters<
+          // @ts-expect-error marks as error but works
+          TApi[Endpoint]
+        >[0],
       >(
-        apiCall: Endpoint,
+        endpoint: Endpoint,
+        args: Args extends undefined ? never : Args,
+        { useCache = false }: FetchOptions = {},
+      ) => {
+        let items: TCollection | undefined;
+        if (useCache) {
+          items = await new Promise((resolve) => resolve(this.collection));
+        }
+        if (!useCache || !items) {
+          items = (await this.apiCall<TApi>(
+            endpoint,
+            args,
+          )) as unknown as TCollection;
+          this.setCollection(items);
+        }
+        return items;
+      },
+    ),
+  );
+
+  _create = flow(
+    toFlowGeneratorFunction(
+      async <
+        Endpoint extends keyof TApi,
+        // @ts-expect-error marks as error but works
+        Args extends Parameters<TApi[Endpoint]>[0] = Parameters<
+          // @ts-expect-error marks as error but works
+          TApi[Endpoint]
+        >[0],
+      >(
+        endpoint: Endpoint,
         args: Args extends undefined ? never : Args,
       ) => {
-        return await this._apiCall<TApi, Endpoint>(apiCall, args);
+        const item = await this.apiCall<TApi>(endpoint, args);
+        if (item) this.addItem(item as TSingle);
+        else throw new Error('Create Endpoint did not return an item');
+        return item;
+      },
+    ),
+  );
+
+  _update = flow(
+    toFlowGeneratorFunction(
+      async <
+        Endpoint extends keyof TApi,
+        // @ts-expect-error marks as error but works
+        Args extends Parameters<TApi[Endpoint]>[0] = Parameters<
+          // @ts-expect-error marks as error but works
+          TApi[Endpoint]
+        >[0],
+      >(
+        endpoint: Endpoint,
+        args: Args extends undefined ? never : Args,
+      ) => {
+        const item = await this.apiCall<TApi>(endpoint, args);
+        if (item) this.editItem(item as TSingle);
+        else throw new Error('Update Endpoint did not return an item');
+        return item;
+      },
+    ),
+  );
+
+  _delete = flow(
+    toFlowGeneratorFunction(
+      async <
+        Endpoint extends keyof TApi,
+        // @ts-expect-error marks as error but works
+        Args extends Parameters<TApi[Endpoint]>[0] = Parameters<
+          // @ts-expect-error marks as error but works
+          TApi[Endpoint]
+        >[0],
+      >(
+        endpoint: Endpoint,
+        args: Args extends undefined
+          ? never
+          : Args & {
+              id: ArrayElement<TCollection>['id'];
+            },
+      ) => {
+        await this.apiCall<TApi>(endpoint, args);
+        this.removeItem(args.id);
       },
     ),
   );

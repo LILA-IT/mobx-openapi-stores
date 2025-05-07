@@ -1,9 +1,8 @@
-import { type BaseAPI } from '../../openapi-generator';
-
+import { ApiType } from 'src/types';
 import { handleError } from './handleError';
 
 export const callApi = async <
-  Api extends BaseAPI,
+  Api extends ApiType,
   Endpoint extends keyof Api,
   Args extends Parameters<
     Api[Endpoint] extends (...args: unknown[]) => unknown
