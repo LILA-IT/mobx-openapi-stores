@@ -7,7 +7,10 @@ import { callApi } from '../utils/api';
 import { type ApiType } from '../types/ApiType';
 import { LoadingStore } from './LoadingStore';
 
-export class ApiStore<T extends ApiType> extends LoadingStore {
+export class ApiStore<
+  T extends ApiType,
+  Config extends Configuration = T extends ApiType<infer C> ? C : never,
+> extends LoadingStore {
   api: T | null = null;
   name: string = '';
   constructor(name: string) {
@@ -28,8 +31,8 @@ export class ApiStore<T extends ApiType> extends LoadingStore {
     this.api = api;
   };
 
-  initApi(config: Configuration) {
-    void 0;
+  initApi(config: Config) {
+    throw new Error('initApi is not implemented by ' + this.name);
   }
 
   get apiIsSet() {
