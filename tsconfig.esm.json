@@ -5,7 +5,7 @@
     "outDir": "./lib/esm",
     "noEmit": false,
     "declaration": true,
-    "declarationDir": "./lib",
+    "declarationDir": "./lib/esm",
     "declarationMap": true,
     "sourceMap": true
   },
