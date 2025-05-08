@@ -1,5 +1,4 @@
-import { action, computed, flow, makeObservable, observable } from 'mobx';
-import { toFlowGeneratorFunction } from 'to-flow-generator-function';
+import { action, computed, makeObservable, observable } from 'mobx';
 
 import { type ArrayElement } from '../types';
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ApiStore } from '..';
-import { BaseAPI } from 'src/openapi-generator';
+import { type ApiType } from 'src/types';
 
 describe('ApiStore', () => {
   it('should be a class', () => {
@@ -12,7 +12,7 @@ describe('ApiStore', () => {
     expect(ApiStore.prototype.constructor).toBeDefined();
   });
 
-  const store = new ApiStore<BaseAPI>('TestStore');
+  const store = new ApiStore<ApiType>('TestStore');
 
   it('should have a name property', () => {
     expect(store.name).toBeDefined();
@@ -29,7 +29,7 @@ describe('ApiStore', () => {
   });
 
   it('should set the api property', () => {
-    const api = { test: 'testAPI' } as unknown as BaseAPI;
+    const api = { test: 'testAPI' } as unknown as ApiType;
     store.setApi(api);
     expect(store.api).toMatchObject(api);
   });

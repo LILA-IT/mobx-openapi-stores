@@ -5,7 +5,7 @@ import { type ArrayElement } from '../types';
 
 import { type ApiType } from '../types/ApiType';
 import { type SingleType } from './SingleStore';
-import { CollectionStore, CollectionType } from './CollectionStore';
+import { CollectionStore, type CollectionType } from './CollectionStore';
 
 /**
  * @typedef CrudFetchOptions
@@ -139,10 +139,9 @@ export class CrudCollectionStore<
         if (useCache)
           item = await new Promise((resolve) => resolve(this.getById(args.id)));
         if (!useCache || !item) {
-          item = (await this.apiCall<TApi>(
-            endpoint,
-            args,
-          )) as unknown as TSingle;
+          item = (await this.apiCall<TApi>(endpoint, args)) as unknown as
+            | TSingle
+            | undefined;
           if (!item) return;
           this.setItem(item);
         }
@@ -179,15 +178,14 @@ export class CrudCollectionStore<
         { useCache = false }: CrudFetchOptions = {},
       ) => {
         let items: TCollection | undefined;
-        if (useCache && this.collection && this.collection.length > 0) {
+        if (useCache && this.collection.length > 0) {
           // Check if collection has items for cache to be useful
           items = await new Promise((resolve) => resolve(this.collection));
         }
         if (!useCache || !items) {
-          items = (await this.apiCall<TApi>(
-            endpoint,
-            args,
-          )) as unknown as TCollection;
+          items = (await this.apiCall<TApi>(endpoint, args)) as unknown as
+            | TCollection
+            | undefined;
           if (items) {
             // Only set collection if API call was successful and returned items
             this.setCollection(items);

@@ -91,6 +91,7 @@ export class ApiStore<
    * @throws {Error} If not implemented by a subclass.
    * @action bound
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   initApi(config: TConfig) {
     // This default implementation throws an error to ensure subclasses implement it.
     throw new Error('initApi is not implemented by ' + this.name);

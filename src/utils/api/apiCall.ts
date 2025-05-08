@@ -1,4 +1,4 @@
-import { ApiType } from 'src/types';
+import { type ApiType } from 'src/types';
 import { handleError } from './handleError';
 
 export const callApi = async <

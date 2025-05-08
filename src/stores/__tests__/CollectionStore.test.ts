@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { BaseAPI } from 'src/openapi-generator';
-
 import { CollectionStore } from '../CollectionStore';
+import type { ApiType } from 'src/types';
 
 type SampleType = {
   id: number;
@@ -110,7 +109,7 @@ describe('CollectionStore', () => {
     expect(CollectionStore.prototype.constructor).toBeDefined();
   });
 
-  const store = new CollectionStore<BaseAPI, SampleType>('TestStore');
+  const store = new CollectionStore<ApiType, SampleType>('TestStore');
 
   it('should have a name', () => {
     expect(store.name).toBe('TestStore');

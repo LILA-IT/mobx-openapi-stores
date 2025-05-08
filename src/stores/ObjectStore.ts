@@ -148,7 +148,7 @@ export class ObjectStore<
    * @returns {TObject[TKey] | undefined} The entry if found, otherwise undefined.
    */
   getEntryById(id: keyof TObject | TKey): TObject[TKey] | undefined {
-    return get(this._object, String(id)); // Cast id to string as mobx get expects string keys
+    return get(this._object, String(id)) as TObject[TKey] | undefined; // Cast id to string as mobx get expects string keys
   }
 
   /**
@@ -246,7 +246,7 @@ export class ObjectStore<
       // However, calling setEntry ensures MobX is aware of a change to the object property if `items` was a copy.
       // For direct mutation of observable array, this.setEntry(entryId, items); might be redundant if `items` IS the observable array.
       // To be safe and explicit, especially if getEntryById could return a non-observable copy:
-      this.setEntry(entryId, items as TObject[TKey]);
+      this.setEntry(entryId, items);
     } else {
       // Handle case where entry is not an array (e.g., if TType can be mixed or entry not initialized as array)
       console.warn(
