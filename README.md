@@ -464,4 +464,4 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details (assuming you'll add one). 
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md). 
