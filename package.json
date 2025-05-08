@@ -14,15 +14,30 @@
     "build:esm": "tsc -p tsconfig.esm.json",
     "build": "npm run clean && npm run build:cjs && npm run build:esm",
     "dev": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix ."
   },
   "dependencies": {
-    "lodash": "^4.17.21",
+    "lodash.assign": "^4.2.0",
+    "lodash.find": "^4.6.0",
+    "lodash.flatmap": "^4.5.0",
+    "lodash.map": "^4.6.0",
+    "lodash.remove": "^4.7.0",
     "mobx": "^6.9.0",
     "to-flow-generator-function": "^1.0.0"
   },
   "devDependencies": {
-    "typescript": "~5.3.0"
+    "@eslint/js": "^9.26.0",
+    "@types/lodash.assign": "^4",
+    "@types/lodash.find": "^4",
+    "@types/lodash.flatmap": "^4",
+    "@types/lodash.map": "^4",
+    "@types/lodash.remove": "^4",
+    "eslint": "^9.26.0",
+    "jiti": "^2.4.2",
+    "typescript": "~5.3.0",
+    "typescript-eslint": "^8.32.0"
   },
   "peerDependencies": {
     "mobx": ">=6.0.0"
