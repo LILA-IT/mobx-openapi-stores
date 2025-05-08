@@ -187,9 +187,6 @@ export class CollectionStore<
     id: ArrayElement<TCollection>['id'],
   ): ArrayElement<TCollection> | TSingle | undefined => {
     if (this.current?.id === id) return this.current;
-    return find(
-      this.collection,
-      (item) => item.id === id,
-    ) as ArrayElement<TCollection>; // Cast assuming find returns a TCollection element or undefined.
+    return find(this.collection, (item) => item.id === id) as ArrayElement<TCollection>; // Cast assuming find returns a TCollection element or undefined.
   };
 }

@@ -12,7 +12,6 @@ export type ApiCall<
   ? (...args: Args) => Return
   : never;
 
-export type ApiResult<
-  TApi extends ApiType,
-  TEndpoint extends keyof TApi,
-> = Awaited<ReturnType<ApiCall<TApi, TEndpoint>>>;
+export type ApiResult<TApi extends ApiType, TEndpoint extends keyof TApi> = Awaited<
+  ReturnType<ApiCall<TApi, TEndpoint>>
+>;

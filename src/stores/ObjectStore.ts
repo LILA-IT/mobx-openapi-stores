@@ -77,11 +77,7 @@ export class ObjectStore<
   TKey extends SingleType['id'],
   TTarget extends SingleType = SingleType,
   TType extends 'collection' = 'collection',
-  TObject extends ObjectType<TKey, TTarget, TType> = ObjectType<
-    TKey,
-    TTarget,
-    TType
-  >,
+  TObject extends ObjectType<TKey, TTarget, TType> = ObjectType<TKey, TTarget, TType>,
 > extends SingleStore<TApi, TTarget> {
   /**
    * @protected

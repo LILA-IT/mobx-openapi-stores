@@ -7,4 +7,6 @@ import { type SingleType } from './SingleType';
  *              Defaults to `TSingle[]` if TSingle is a full object, but allows for collections of partial objects.
  */
 export type CollectionType<TSingle extends SingleType = SingleType> =
-  (Partial<TSingle> & { id: number | string })[];
+  (Partial<TSingle> & {
+    id: number | string;
+  })[];

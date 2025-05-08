@@ -5,9 +5,7 @@ export const callApi = async <
   Api extends ApiType,
   Endpoint extends keyof Api,
   Args extends Parameters<
-    Api[Endpoint] extends (...args: unknown[]) => unknown
-      ? Api[Endpoint]
-      : never
+    Api[Endpoint] extends (...args: unknown[]) => unknown ? Api[Endpoint] : never
   >[0],
 >(
   apiCall: Endpoint,
