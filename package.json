@@ -1,7 +1,7 @@
 {
-  "name": "mobx-openapi-generator",
+  "name": "mobx-openapi-stores",
   "version": "0.1.0",
-  "description": "A MobX-based store for OpenAPI generated clients",
+  "description": "A MobX-based store implementation for OpenAPI generated clients",
   "main": "lib/index.js",
   "module": "lib/esm/index.js",
   "types": "lib/index.d.ts",
