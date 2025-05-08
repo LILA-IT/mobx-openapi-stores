@@ -33,7 +33,7 @@ cache: &node_modules_cache
     - yarn install # Ensure dependencies are installed
   parallel:
     matrix:
-      - NODE_VERSION: ['18', '20', '22'] # Corresponds to image: node:${NODE_VERSION}
+      - NODE_VERSION: ['20', '22'] # Corresponds to image: node:${NODE_VERSION}
   image: node:${NODE_VERSION} # Dynamically set node version for the job
   interruptible: true
 
