@@ -1,0 +1,162 @@
+variables:
+  # NODE_ENV: test # Set to 'test' for test runs if your app/scripts use it
+  SONAR_USER_HOME: '${CI_PROJECT_DIR}/.sonar' # Defines the location of the analysis task cache for Sonar
+  GIT_DEPTH: '0' # Fetches all branches, needed for SonarQube accurate analysis on feature branches
+
+default:
+  image: node:20-slim # Use a recent LTS Node.js version as default
+
+stages:
+  - setup # For installing dependencies
+  - test # For linting, type-checking, unit tests
+  - build # For creating production builds
+  - analyze # For SonarQube
+  - release # For semantic-release
+
+# Cache node_modules - key based on yarn.lock
+cache: &node_modules_cache
+  key:
+    files:
+      - yarn.lock
+  paths:
+    - node_modules/
+  policy: pull-push # Push cache on success, pull at start
+
+# Hidden job template for Node.js setup and matrix
+.node_job_template:
+  stage: test
+  cache:
+    - <<: *node_modules_cache
+      policy: pull # Only pull for these jobs, 'install_deps' will push
+  before_script:
+    - echo "Using Node.js $(node -v)"
+    - yarn install --frozen-lockfile --check-files # Ensure dependencies are installed
+  parallel:
+    matrix:
+      - NODE_VERSION: ['18', '20', '22'] # Corresponds to image: node:${NODE_VERSION}
+  image: node:${NODE_VERSION} # Dynamically set node version for the job
+  interruptible: true
+
+install_dependencies:
+  stage: setup
+  script:
+    - echo "Installing dependencies..."
+    - yarn install --frozen-lockfile --check-files
+  cache:
+    <<: *node_modules_cache # This job populates the cache
+
+lint:
+  extends: .node_job_template
+  script:
+    - yarn lint
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+type_check:
+  extends: .node_job_template
+  script:
+    - yarn type-check
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+unit_tests:
+  extends: .node_job_template
+  script:
+    - yarn test --run # Assuming 'yarn test --run' executes Vitest non-interactively
+  # If you generate coverage reports:
+  # coverage: /All files\s*\|\s*([\d\.]+)/ # Example regex for Vitest text summary coverage
+  # artifacts:
+  #   when: always
+  #   reports:
+  #     junit: gl-junit-report.xml # If Vitest can output JUnit XML
+  #     coverage_report:
+  #       coverage_format: cobertura # Or lcov
+  #       path: coverage/cobertura-coverage.xml # Or coverage/lcov.info
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+build_package:
+  stage: build
+  image: node:20 # Or your primary build Node version
+  script:
+    - yarn install --frozen-lockfile --check-files
+    - yarn build
+  artifacts:
+    paths:
+      - lib/ # Assuming 'lib' is your build output directory
+    expire_in: 1 week
+  cache:
+    - <<: *node_modules_cache
+      policy: pull
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+sonarqube_scan:
+  stage: analyze
+  image:
+    name: sonarsource/sonar-scanner-cli:latest # Using latest, or pin to a version like your previous :11
+    entrypoint: ['']
+  variables:
+    SONAR_USER_HOME: '${CI_PROJECT_DIR}/.sonar'
+    GIT_DEPTH: '0'
+  cache:
+    key: '${CI_JOB_NAME}-sonar-cache'
+    paths:
+      - .sonar/cache
+      - .sonar/scanner # For SonarScanner 5.x+ output
+  script:
+    - echo "Running SonarQube scan..."
+    - > # Using > for multi-line script
+      sonar-scanner
+      -Dsonar.projectKey=lila-it_mobx-openapi-stores
+      -Dsonar.sources=.
+      -Dsonar.host.url=${SONAR_HOST_URL}
+      -Dsonar.token=${SONAR_TOKEN}
+      -Dsonar.branch.name=${CI_COMMIT_REF_NAME}
+      -Dsonar.gitlab.project_id=${CI_PROJECT_ID}
+      -Dsonar.gitlab.commit_sha=${CI_COMMIT_SHA}
+      -Dsonar.gitlab.ref_name=${CI_COMMIT_REF_NAME}
+      # For Merge Request decoration:
+      -Dsonar.gitlab.merge_request_iid=${CI_MERGE_REQUEST_IID}
+      -Dsonar.gitlab.target_branch=${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}
+      # Add other necessary SonarQube properties here, e.g., for test coverage reports
+      # -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+  allow_failure: true # Or false, depending on if you want pipeline to fail on SonarQube issues
+  needs: ['build_package'] # Ensure build artifacts (if needed by Sonar) are available, though Sonar usually scans source
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      variables: # Ensure MR variables are available
+        SONAR_PULLREQUEST_BRANCH: $CI_COMMIT_REF_NAME
+        SONAR_PULLREQUEST_BASE: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+        SONAR_PULLREQUEST_KEY: $CI_MERGE_REQUEST_IID
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == 'develop' # As per your previous rules
+  # Ensure SONAR_TOKEN and SONAR_HOST_URL are set as GitLab CI/CD variables
+
+semantic_release:
+  stage: release
+  image: node:20 # Use a Node version compatible with semantic-release and your project
+  before_script:
+    - yarn install --frozen-lockfile --check-files
+    - apt-get update && apt-get install -y --no-install-recommends git # Ensure git is available
+  script:
+    - yarn semantic-release
+  # GITHUB_TOKEN is for @semantic-release/github (to create GitHub releases)
+  # NPM_TOKEN is for @semantic-release/npm (to publish to npm)
+  # Ensure these are set as masked & protected GitLab CI/CD variables
+  environment:
+    name: production
+  needs: ['build_package'] # Ensure it runs after build & successful tests from matrix
+  # This job should only run on the default branch (e.g., main) after all tests pass
+  # The 'needs' keyword implicitly handles waiting for test jobs if they are in earlier stages
+  # and if this job had a common 'need' like a final test aggregation.
+  # Given matrix, better to rely on stage ordering and explicit rules.
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == 'push'
+      # Add conditions here if you need specific jobs from the matrix to pass.
+      # For simplicity, relying on stage success.
+      # If any job in 'test' or 'build' stage (which includes matrix jobs) fails, this 'release' stage won't run.
