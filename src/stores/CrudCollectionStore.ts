@@ -1,11 +1,10 @@
 import { flow, makeObservable } from 'mobx';
 import { toFlowGeneratorFunction } from 'to-flow-generator-function';
 
-import { type ArrayElement } from '../types';
+import { type CollectionType, type SingleType, type ArrayElement } from '../types';
 
 import { type ApiType } from '../types/ApiType';
-import { type SingleType } from './SingleStore';
-import { CollectionStore, type CollectionType } from './CollectionStore';
+import { CollectionStore } from './CollectionStore';
 
 /**
  * @typedef CrudFetchOptions
