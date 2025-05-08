@@ -16,6 +16,23 @@ export type CrudFetchOptions = {
   useCache?: boolean;
 };
 
+// TODO: Add CrudConfig type
+/**
+ * @typedef CrudConfig
+ * @description Configuration for `CrudCollectionStore`.
+ * @property {string} [createEndpoint] - The API endpoint for creating an item.
+ * @property {string} [fetchAllEndpoint] - The API endpoint for fetching all items.
+ * @property {string} [fetchOneEndpoint] - The API endpoint for fetching a single item by ID.
+ * @property {string} [updateEndpoint] - The API endpoint for updating an item.
+ * @property {string} [deleteEndpoint] - The API endpoint for deleting an item.
+ */
+// export type CrudConfig<TApi extends ApiType> = {
+//   createEndpoint?: keyof TApi & string;
+//   fetchAllEndpoint?: keyof TApi & string;
+//   fetchByIdEndpoint?: keyof TApi & string;
+//   updateEndpoint?: keyof TApi & string;
+//   deleteEndpoint?: keyof TApi & string;
+// };
 /**
  * @class CrudCollectionStore
  * @template TApi - The type of the generated API client.
@@ -91,6 +108,7 @@ export class CrudCollectionStore<
   TCollection extends CollectionType<TSingle> = TSingle[],
 > extends CollectionStore<TApi, TSingle, TCollection> {
   _collection: TCollection = [] as unknown as TCollection;
+  // _crudConfig: CrudConfig = {};
 
   constructor(name: string) {
     super(name);
