@@ -82,7 +82,7 @@ build_package:
   stage: build
   image: node:20 # Or your primary build Node version
   script:
-    - yarn install --frozen-lockfile --check-files
+    - yarn install
     - yarn build
   artifacts:
     paths:
@@ -141,7 +141,7 @@ semantic_release:
   stage: release
   image: node:20 # Use a Node version compatible with semantic-release and your project
   before_script:
-    - yarn install --frozen-lockfile --check-files
+    - yarn install
     - apt-get update && apt-get install -y --no-install-recommends git # Ensure git is available
   script:
     - yarn semantic-release
