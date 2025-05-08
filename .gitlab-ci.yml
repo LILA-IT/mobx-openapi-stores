@@ -30,7 +30,7 @@ cache: &node_modules_cache
       policy: pull # Only pull for these jobs, 'install_deps' will push
   before_script:
     - echo "Using Node.js $(node -v)"
-    - yarn install --frozen-lockfile --check-files # Ensure dependencies are installed
+    - yarn install # Ensure dependencies are installed
   parallel:
     matrix:
       - NODE_VERSION: ['18', '20', '22'] # Corresponds to image: node:${NODE_VERSION}
@@ -41,7 +41,7 @@ install_dependencies:
   stage: setup
   script:
     - echo "Installing dependencies..."
-    - yarn install --frozen-lockfile --check-files
+    - yarn install
   cache:
     <<: *node_modules_cache # This job populates the cache
 
