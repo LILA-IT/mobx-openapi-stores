@@ -109,7 +109,14 @@ describe('CollectionStore', () => {
     expect(CollectionStore.prototype.constructor).toBeDefined();
   });
 
-  const store = new CollectionStore<ApiType, SampleType>('TestStore');
+  const store = new CollectionStore<ApiType, SampleType>({
+    name: 'TestStore',
+    apiConstructor: (config) => {
+      return {
+        configuration: config,
+      } as unknown as ApiType;
+    },
+  });
 
   it('should have a name', () => {
     expect(store.name).toBe('TestStore');

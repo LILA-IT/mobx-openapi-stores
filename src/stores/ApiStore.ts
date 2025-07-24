@@ -1,10 +1,9 @@
 import { action, computed, flow, makeObservable, observable } from 'mobx';
 import { toFlowGeneratorFunction } from 'to-flow-generator-function';
 
-import { type Configuration } from '../openapi-generator';
 import { callApi } from '../utils/api';
 
-import { type ApiType } from '../types/ApiType';
+import { type ApiConfig, type ApiType } from '../types/ApiType';
 import { LoadingStore } from './LoadingStore';
 
 /**
@@ -47,7 +46,7 @@ import { LoadingStore } from './LoadingStore';
  */
 export class ApiStore<
   TApi extends ApiType,
-  TConfig extends Configuration = TApi extends ApiType<infer C> ? C : never,
+  TConfig extends ApiConfig<TApi> = ApiConfig<TApi>,
 > extends LoadingStore {
   /**
    * @property {TApi | null} api
@@ -56,9 +55,16 @@ export class ApiStore<
    * @observable
    */
   api: TApi | null = null;
+  apiConstructor: (config: TConfig) => TApi;
   name: string = '';
 
-  constructor(name: string) {
+  constructor({
+    name,
+    apiConstructor,
+  }: {
+    name: string;
+    apiConstructor: (config: TConfig) => TApi;
+  }) {
     super();
     makeObservable(this, {
       initApi: action.bound,
@@ -69,6 +75,7 @@ export class ApiStore<
       apiCall: flow,
     });
     this.name = name;
+    this.apiConstructor = apiConstructor;
     this.setIsLoading(true); // Typically, an API store might start by fetching initial data or waiting for config.
   }
 
@@ -91,10 +98,12 @@ export class ApiStore<
    * @throws {Error} If not implemented by a subclass.
    * @action bound
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   initApi(config: TConfig) {
-    // This default implementation throws an error to ensure subclasses implement it.
-    throw new Error('initApi is not implemented by ' + this.name);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (!this.apiConstructor) {
+      throw new Error('initApi is not implemented for ' + this.name);
+    }
+    this.setApi(this.apiConstructor(config));
   }
 
   /**

@@ -12,7 +12,14 @@ describe('ApiStore', () => {
     expect(ApiStore.prototype.constructor).toBeDefined();
   });
 
-  const store = new ApiStore<ApiType>('TestStore');
+  const store = new ApiStore<ApiType>({
+    name: 'TestStore',
+    apiConstructor: (config) => {
+      return {
+        configuration: config,
+      } as unknown as ApiType;
+    },
+  });
 
   it('should have a name property', () => {
     expect(store.name).toBeDefined();

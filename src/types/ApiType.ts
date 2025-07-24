@@ -15,3 +15,6 @@ export type ApiCall<
 export type ApiResult<TApi extends ApiType, TEndpoint extends keyof TApi> = Awaited<
   ReturnType<ApiCall<TApi, TEndpoint>>
 >;
+
+export type ApiConfig<TApi extends ApiType> =
+  TApi extends ApiType<infer C> ? C : Configuration;

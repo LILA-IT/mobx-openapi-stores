@@ -1,7 +1,7 @@
 import { action, computed, makeObservable, observable } from 'mobx';
 
 import { ApiStore } from './ApiStore';
-import { type ApiType } from '../types/ApiType';
+import { type ApiConfig, type ApiType } from '../types/ApiType';
 import { type SingleType } from 'src/types';
 
 /**
@@ -53,8 +53,14 @@ export class SingleStore<
    */
   _current: TSingle | null = null;
 
-  constructor(name: string) {
-    super(name);
+  constructor({
+    name,
+    apiConstructor,
+  }: {
+    name: string;
+    apiConstructor: (config: ApiConfig<TApi>) => TApi;
+  }) {
+    super({ name, apiConstructor });
     makeObservable(this, {
       _current: observable,
       current: computed,

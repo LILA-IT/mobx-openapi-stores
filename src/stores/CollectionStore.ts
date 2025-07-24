@@ -2,7 +2,7 @@ import { action, computed, makeObservable, observable } from 'mobx';
 
 import { type CollectionType, type ArrayElement, type SingleType } from '../types';
 
-import { type ApiType } from '../types/ApiType';
+import { type ApiConfig, type ApiType } from '../types/ApiType';
 import { SingleStore } from './SingleStore';
 import assign from 'lodash.assign';
 import map from 'lodash.map';
@@ -64,8 +64,14 @@ export class CollectionStore<
    */
   _collection: TCollection = [] as unknown as TCollection;
 
-  constructor(name: string) {
-    super(name);
+  constructor({
+    name,
+    apiConstructor,
+  }: {
+    name: string;
+    apiConstructor: (config: ApiConfig<TApi>) => TApi;
+  }) {
+    super({ name, apiConstructor });
     makeObservable(this, {
       _collection: observable,
       collection: computed,

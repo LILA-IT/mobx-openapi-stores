@@ -3,7 +3,7 @@ import { toFlowGeneratorFunction } from 'to-flow-generator-function';
 
 import { type CollectionType, type SingleType, type ArrayElement } from '../types';
 
-import { type ApiType } from '../types/ApiType';
+import { type ApiConfig, type ApiType } from '../types/ApiType';
 import { CollectionStore } from './CollectionStore';
 
 /**
@@ -108,8 +108,14 @@ export class CrudCollectionStore<
 > extends CollectionStore<TApi, TSingle, TCollection> {
   // _crudConfig: CrudConfig = {};
 
-  constructor(name: string) {
-    super(name);
+  constructor({
+    name,
+    apiConstructor,
+  }: {
+    name: string;
+    apiConstructor: (config: ApiConfig<TApi>) => TApi;
+  }) {
+    super({ name, apiConstructor });
     makeObservable(this, {
       _fetch: flow,
       _fetchAll: flow,

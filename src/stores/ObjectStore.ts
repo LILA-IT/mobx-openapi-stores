@@ -11,7 +11,7 @@ import {
   values,
 } from 'mobx';
 
-import { type ApiType } from '../types/ApiType';
+import { type ApiConfig, type ApiType } from '../types/ApiType';
 import { SingleStore } from './SingleStore';
 import find from 'lodash.find';
 import flatMap from 'lodash.flatmap';
@@ -86,8 +86,14 @@ export class ObjectStore<
    */
   _object = observable.object<TObject>({} as TObject);
 
-  constructor(name: string) {
-    super(name);
+  constructor({
+    name,
+    apiConstructor,
+  }: {
+    name: string;
+    apiConstructor: (config: ApiConfig<TApi>) => TApi;
+  }) {
+    super({ name, apiConstructor });
     makeObservable(this, {
       _object: observable,
       object: computed,
