@@ -106,7 +106,6 @@ export class CrudCollectionStore<
   TSingle extends SingleType,
   TCollection extends CollectionType<TSingle> = TSingle[],
 > extends CollectionStore<TApi, TSingle, TCollection> {
-  _collection: TCollection = [] as unknown as TCollection;
   // _crudConfig: CrudConfig = {};
 
   constructor(name: string) {
