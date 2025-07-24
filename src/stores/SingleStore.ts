@@ -20,15 +20,24 @@ import { type SingleType } from 'src/types';
  *                      Pass a `TSingle` object to set it, or `null` to clear it.
  *
  * @example
- * // Assuming User is a type { id: string, name: string } and UserApi is the API client type
+ * // Using createApi function (new approach)
+ * const userStore = new SingleStore<UserApi, User>({
+ *   name: 'CurrentUserStore',
+ *   createApi: (config) => new UserApi(config)
+ * });
+ *
+ * @example
+ * // Extending with custom initApi (recommended for complex cases)
  * class CurrentUserStore extends SingleStore<UserApi, User> {
- *   constructor() {
- *     super('CurrentUserStore');
- *     // makeObservable is called in SingleStore for _current, current, setCurrent
+ *   constructor(name?: string) {
+ *     super(name || 'CurrentUserStore');
+ *     makeObservable(this, { loadUser: action });
  *   }
  *
  *   // initApi would be implemented here to set up UserApi
- *   initApi(config: UserApiConfig) { this.setApi(new UserApi(config)); }
+ *   initApi(config: UserApiConfig) {
+ *     this.setApi(new UserApi(config));
+ *   }
  *
  *   async loadUser(userId: string) {
  *     const user = await this.apiCall('getUserById', { userId }); // Assuming 'getUserById' is a method on UserApi
@@ -39,6 +48,14 @@ import { type SingleType } from 'src/types';
  *
  *   clearUser() {
  *     this.setCurrent(null);
+ *   }
+ * }
+ *
+ * @example
+ * // Backwards compatible usage
+ * class LegacyUserStore extends SingleStore<UserApi, User> {
+ *   constructor() {
+ *     super('LegacyUserStore'); // Old signature still works
  *   }
  * }
  */
@@ -53,14 +70,31 @@ export class SingleStore<
    */
   _current: TSingle | null = null;
 
-  constructor({
-    name,
-    apiConstructor,
-  }: {
-    name: string;
-    apiConstructor: (config: ApiConfig<TApi>) => TApi;
-  }) {
-    super({ name, apiConstructor });
+  /**
+   * @constructor
+   * @description Creates a new SingleStore instance. Supports both legacy and new constructor signatures for backwards compatibility.
+   * @param {string | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi }} [nameOrOptions]
+   *        - Legacy: A string representing the store name
+   *        - New: An options object with optional name and createApi function
+   *
+   * @example
+   * // Legacy signature (backwards compatible)
+   * const store1 = new SingleStore('MyStore');
+   *
+   * @example
+   * // New signature with createApi function
+   * const store2 = new SingleStore({
+   *   name: 'MyStore',
+   *   createApi: (config) => new MyApi(config)
+   * });
+   */
+  constructor(
+    nameOrOptions?:
+      | string
+      | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi },
+  ) {
+    super(nameOrOptions); // Pass through to ApiStore which handles the parsing
+
     makeObservable(this, {
       _current: observable,
       current: computed,

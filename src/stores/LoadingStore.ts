@@ -9,7 +9,11 @@ import { action, computed, makeObservable, observable } from 'mobx';
  * This store is typically extended by other stores that need to indicate
  * asynchronous operations are in progress.
  *
+ * @property {boolean} isLoading - A computed property that returns the current loading state.
+ * @method setIsLoading - Action to set the loading state of the store.
+ *
  * @example
+ * // Extending LoadingStore for custom data management
  * class MyDataStore extends LoadingStore {
  *   constructor() {
  *     super();
@@ -25,11 +29,27 @@ import { action, computed, makeObservable, observable } from 'mobx';
  *     }
  *   }
  * }
+ *
+ * @example
+ * // Direct usage for simple loading tracking
+ * const loadingStore = new LoadingStore();
+ * loadingStore.setIsLoading(true);
+ * // ... perform operation ...
+ * loadingStore.setIsLoading(false);
  */
 
 export class LoadingStore {
+  /**
+   * @protected
+   * @property {boolean} _isLoading - The internal observable property holding the loading state.
+   * @observable
+   */
   _isLoading = false;
 
+  /**
+   * @constructor
+   * @description Creates a new LoadingStore instance with loading state initialized to false.
+   */
   constructor() {
     makeObservable(this, {
       _isLoading: observable,

@@ -25,7 +25,7 @@ import { type ObjectType, type SingleType } from 'src/types';
  * @template TTarget - The type of the individual items that will be stored (must conform to `SingleType`).
  *                     If `TType` is 'collection', entries will be `TTarget[]`.
  * @template TType - Specifies whether entries in the object are single items ('single') or collections ('collection').
- *                   Defaults to 'collection'. **Note: The default in the class signature provided was 'collection', but in `ObjectType` it was 'single'. Assuming 'collection' for the store as it has collection-oriented methods like `addItem`. Please verify.**
+ *                   Defaults to 'collection'.
  * @template TObject - The overall shape of the observable object, conforming to `ObjectType<TKey, TTarget, TType>`.
  *
  * @description Manages a dictionary-like observable object (`_object`) where each key maps to either a single entity
@@ -51,15 +51,24 @@ import { type ObjectType, type SingleType } from 'src/types';
  * @method getItemById - Finds a specific `TTarget` item by its `id` by searching through all collection entries.
  *
  * @example
- * // Tasks grouped by category (string keys, Task items, entries are collections)
+ * // Using createApi function (new approach)
+ * const groupedTaskStore = new ObjectStore<TaskApi, string, Task, 'collection'>({
+ *   name: 'GroupedTaskStore',
+ *   createApi: (config) => new TaskApi(config)
+ * });
+ *
+ * @example
+ * // Extending with custom logic (recommended for complex cases)
  * class GroupedTaskStore extends ObjectStore<TaskApi, string, Task, 'collection'> {
- *   constructor() {
- *     super('GroupedTaskStore');
- *     // initApi and other necessary makeObservable calls for public methods would go here
+ *   constructor(name?: string) {
+ *     super(name || 'GroupedTaskStore');
+ *     makeObservable(this, { addTaskToCategory: action });
  *   }
  *
  *   // initApi implementation
- *   initApi(config: TaskApiConfig) { this.setApi(new TaskApi(config)); }
+ *   initApi(config: TaskApiConfig) {
+ *     this.setApi(new TaskApi(config));
+ *   }
  *
  *   async addTaskToCategory(categoryId: string, taskData: CreateTaskDto) {
  *     const newTask = await this.apiCall('createTask', { taskData }) as Task; // Assuming API call returns Task
@@ -69,6 +78,14 @@ import { type ObjectType, type SingleType } from 'src/types';
  *       }
  *       this.addItem(categoryId, newTask);
  *     }
+ *   }
+ * }
+ *
+ * @example
+ * // Backwards compatible usage
+ * class LegacyGroupedStore extends ObjectStore<TaskApi, string, Task> {
+ *   constructor() {
+ *     super('LegacyGroupedStore'); // Old signature still works
  *   }
  * }
  */
@@ -86,14 +103,30 @@ export class ObjectStore<
    */
   _object = observable.object<TObject>({} as TObject);
 
-  constructor({
-    name,
-    apiConstructor,
-  }: {
-    name: string;
-    apiConstructor: (config: ApiConfig<TApi>) => TApi;
-  }) {
-    super({ name, apiConstructor });
+  /**
+   * @constructor
+   * @description Creates a new ObjectStore instance. Supports both legacy and new constructor signatures for backwards compatibility.
+   * @param {string | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi }} [nameOrOptions]
+   *        - Legacy: A string representing the store name
+   *        - New: An options object with optional name and createApi function
+   *
+   * @example
+   * // Legacy signature (backwards compatible)
+   * const store1 = new ObjectStore('MyStore');
+   *
+   * @example
+   * // New signature with createApi function
+   * const store2 = new ObjectStore({
+   *   name: 'MyStore',
+   *   createApi: (config) => new MyApi(config)
+   * });
+   */
+  constructor(
+    nameOrOptions?:
+      | string
+      | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi },
+  ) {
+    super(nameOrOptions);
     makeObservable(this, {
       _object: observable,
       object: computed,

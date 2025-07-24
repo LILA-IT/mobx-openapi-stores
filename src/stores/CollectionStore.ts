@@ -33,15 +33,24 @@ import find from 'lodash.find';
  * @method getById - Retrieves an item from the collection by its `id`. Checks `current` first, then searches the collection.
  *
  * @example
- * // Assuming Product is { id: string, name: string, price: number } and ProductApi is the API client
+ * // Using createApi function (new approach)
+ * const productStore = new CollectionStore<ProductApi, Product>({
+ *   name: 'ProductListStore',
+ *   createApi: (config) => new ProductApi(config)
+ * });
+ *
+ * @example
+ * // Extending with custom logic (recommended for complex cases)
  * class ProductListStore extends CollectionStore<ProductApi, Product> {
- *   constructor() {
- *     super('ProductListStore');
- *     // makeObservable is called in CollectionStore for its specific members
+ *   constructor(name?: string) {
+ *     super(name || 'ProductListStore');
+ *     makeObservable(this, { addAndSelectProduct: action });
  *   }
  *
  *   // initApi would be implemented here
- *   initApi(config: ProductApiConfig) { this.setApi(new ProductApi(config)); }
+ *   initApi(config: ProductApiConfig) {
+ *     this.setApi(new ProductApi(config));
+ *   }
  *
  *   async addAndSelectProduct(productData: CreateProductDto) {
  *     // Assuming createProduct returns the full product with an id
@@ -49,6 +58,14 @@ import find from 'lodash.find';
  *     if (newProduct) {
  *       this.addItem(newProduct as Product, true); // Add and set as current
  *     }
+ *   }
+ * }
+ *
+ * @example
+ * // Backwards compatible usage
+ * class LegacyProductStore extends CollectionStore<ProductApi, Product> {
+ *   constructor() {
+ *     super('LegacyProductStore'); // Old signature still works
  *   }
  * }
  */
@@ -64,14 +81,30 @@ export class CollectionStore<
    */
   _collection: TCollection = [] as unknown as TCollection;
 
-  constructor({
-    name,
-    apiConstructor,
-  }: {
-    name: string;
-    apiConstructor: (config: ApiConfig<TApi>) => TApi;
-  }) {
-    super({ name, apiConstructor });
+  /**
+   * @constructor
+   * @description Creates a new CollectionStore instance. Supports both legacy and new constructor signatures for backwards compatibility.
+   * @param {string | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi }} [nameOrOptions]
+   *        - Legacy: A string representing the store name
+   *        - New: An options object with optional name and createApi function
+   *
+   * @example
+   * // Legacy signature (backwards compatible)
+   * const store1 = new CollectionStore('MyStore');
+   *
+   * @example
+   * // New signature with createApi function
+   * const store2 = new CollectionStore({
+   *   name: 'MyStore',
+   *   createApi: (config) => new MyApi(config)
+   * });
+   */
+  constructor(
+    nameOrOptions?:
+      | string
+      | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi },
+  ) {
+    super(nameOrOptions);
     makeObservable(this, {
       _collection: observable,
       collection: computed,

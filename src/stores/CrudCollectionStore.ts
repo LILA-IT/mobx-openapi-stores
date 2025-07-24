@@ -54,22 +54,24 @@ export type CrudFetchOptions = {
  * @protected @method _delete - Deletes an item by its ID using a specified API endpoint and removes it from the store.
  *
  * @example
- * // Assuming Task is { id: string, title: string, completed: boolean } and TaskApi provides CRUD methods.
- * // CreateTaskDto and UpdateTaskDto are respective DTOs for create/update operations.
+ * // Using createApi function (new approach)
+ * const taskStore = new CrudCollectionStore<TaskApi, Task>({
+ *   name: 'TaskStore',
+ *   createApi: (config) => new TaskApi(config)
+ * });
  *
+ * @example
+ * // Extending with custom CRUD methods (recommended approach)
  * class TaskStore extends CrudCollectionStore<TaskApi, Task> {
- *   constructor() {
- *     super('TaskStore');
- *     // makeObservable is called in CrudCollectionStore for its flow methods.
- *     // Add public methods if you expose them differently or need more specific makeObservable calls.
+ *   constructor(name?: string) {
+ *     super(name || 'TaskStore');
  *     makeObservable(this, {
- *       // Public-facing methods that will call the protected _methods
  *       fetchAllTasks: flow,
  *       fetchTaskById: flow,
  *       createNewTask: flow,
  *       updateExistingTask: flow,
  *       deleteTaskById: flow,
- *       initApi: action, // Assuming initApi is an action
+ *       initApi: override, // If implementing custom initApi
  *     });
  *   }
  *
@@ -99,6 +101,14 @@ export type CrudFetchOptions = {
  *     return await this._delete('taskControllerRemove', { id });
  *   });
  * }
+ *
+ * @example
+ * // Backwards compatible usage
+ * class LegacyTaskStore extends CrudCollectionStore<TaskApi, Task> {
+ *   constructor() {
+ *     super('LegacyTaskStore'); // Old signature still works
+ *   }
+ * }
  */
 
 export class CrudCollectionStore<
@@ -108,14 +118,30 @@ export class CrudCollectionStore<
 > extends CollectionStore<TApi, TSingle, TCollection> {
   // _crudConfig: CrudConfig = {};
 
-  constructor({
-    name,
-    apiConstructor,
-  }: {
-    name: string;
-    apiConstructor: (config: ApiConfig<TApi>) => TApi;
-  }) {
-    super({ name, apiConstructor });
+  /**
+   * @constructor
+   * @description Creates a new CrudCollectionStore instance. Supports both legacy and new constructor signatures for backwards compatibility.
+   * @param {string | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi }} [nameOrOptions]
+   *        - Legacy: A string representing the store name
+   *        - New: An options object with optional name and createApi function
+   *
+   * @example
+   * // Legacy signature (backwards compatible)
+   * const store1 = new CrudCollectionStore('MyStore');
+   *
+   * @example
+   * // New signature with createApi function
+   * const store2 = new CrudCollectionStore({
+   *   name: 'MyStore',
+   *   createApi: (config) => new MyApi(config)
+   * });
+   */
+  constructor(
+    nameOrOptions?:
+      | string
+      | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi },
+  ) {
+    super(nameOrOptions);
     makeObservable(this, {
       _fetch: flow,
       _fetchAll: flow,

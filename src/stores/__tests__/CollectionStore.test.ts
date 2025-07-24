@@ -111,7 +111,7 @@ describe('CollectionStore', () => {
 
   const store = new CollectionStore<ApiType, SampleType>({
     name: 'TestStore',
-    apiConstructor: (config) => {
+    createApi: (config) => {
       return {
         configuration: config,
       } as unknown as ApiType;

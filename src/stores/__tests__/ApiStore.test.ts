@@ -14,7 +14,7 @@ describe('ApiStore', () => {
 
   const store = new ApiStore<ApiType>({
     name: 'TestStore',
-    apiConstructor: (config) => {
+    createApi: (config) => {
       return {
         configuration: config,
       } as unknown as ApiType;
