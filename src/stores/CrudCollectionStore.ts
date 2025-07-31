@@ -160,7 +160,7 @@ export class CrudCollectionStore<
    *              It handles caching (if `useCache` is true and item exists) and updates the item in the store using `setItem`.
    * @param {Endpoint} endpoint - The API endpoint method name (must be a key of `TApi`).
    * @param {Args & { id: ArrayElement<TCollection>['id'] }} args - Arguments for the API call, must include the `id` of the item to fetch.
-   * @param {CrudFetchOptions} [options={}] - Options for the fetch operation, e.g., `useCache`.
+   * @param {CrudFetchOptions & { setCurrent?: boolean }} [options={}] - Options for the fetch operation, e.g., `useCache, setCurrent`.
    * @returns {Promise<TSingle | ArrayElement<TCollection> | undefined>} A promise resolving to the fetched item, or undefined if not found/error.
    * @flow
    */
@@ -181,7 +181,12 @@ export class CrudCollectionStore<
               // If Args is defined, ensure it includes id
               id: ArrayElement<TCollection>['id'];
             },
-        { useCache = false }: CrudFetchOptions = {},
+        {
+          useCache = false,
+          setCurrent = true,
+        }: CrudFetchOptions & {
+          setCurrent?: boolean;
+        } = {},
       ) => {
         let item: TSingle | ArrayElement<TCollection> | undefined;
         if (useCache)
@@ -191,7 +196,7 @@ export class CrudCollectionStore<
             | TSingle
             | undefined;
           if (!item) return;
-          this.setItem(item);
+          this.setItem(item, setCurrent);
         }
         return item;
       },
