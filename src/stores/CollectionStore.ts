@@ -190,7 +190,7 @@ export class CollectionStore<
    */
   editItem = (updatedItem: TSingle, setCurrent: boolean = true) => {
     if (setCurrent || this.current?.id === updatedItem.id) {
-      assign(this._current, updatedItem);
+      this.setCurrent(updatedItem);
     }
     this.setCollection(
       // @ts-expect-error lodash types might not perfectly align with TCollection/TSingle constraints

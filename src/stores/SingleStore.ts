@@ -1,4 +1,4 @@
-import { action, computed, makeObservable, observable } from 'mobx';
+import { action, computed, makeObservable, observable, set } from 'mobx';
 
 import { ApiStore } from './ApiStore';
 import { type ApiConfig, type ApiType } from '../types/ApiType';
@@ -65,10 +65,10 @@ export class SingleStore<
 > extends ApiStore<TApi> {
   /**
    * @protected
-   * @property {TSingle | null} _current - The internal observable property holding the current entity.
+   * @property {TSingle | null} #current - The internal observable property holding the current entity.
    * @observable
    */
-  _current: TSingle | null = null;
+  #current = observable.object({ value: null as TSingle | null });
 
   /**
    * @constructor
@@ -96,7 +96,6 @@ export class SingleStore<
     super(nameOrOptions); // Pass through to ApiStore which handles the parsing
 
     makeObservable(this, {
-      _current: observable,
       current: computed,
       setCurrent: action,
     });
@@ -109,7 +108,12 @@ export class SingleStore<
    * @action
    */
   setCurrent(newCurrent: TSingle | null) {
-    this._current = newCurrent;
+    if (newCurrent === null) {
+      set(this.#current, 'value', null);
+    } else {
+      // Make the object deeply observable when setting it
+      set(this.#current, 'value', observable(newCurrent));
+    }
   }
 
   /**
@@ -119,6 +123,6 @@ export class SingleStore<
    * @computed
    */
   get current() {
-    return this._current;
+    return this.#current.value;
   }
 }
