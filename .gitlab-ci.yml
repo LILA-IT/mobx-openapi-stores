@@ -22,15 +22,20 @@ cache: &node_modules_cache
     - node_modules/
   policy: pull-push # Push cache on success, pull at start
 
+.corepack_job_template:
+  before_script:
+    - corepack enable
+    - corepack install
+    - yarn install
+    - echo "Using Node.js $(node -v)"
+
 # Hidden job template for Node.js setup and matrix
 .node_job_template:
   stage: test
   cache:
     - <<: *node_modules_cache
       policy: pull # Only pull for these jobs, 'install_deps' will push
-  before_script:
-    - echo "Using Node.js $(node -v)"
-    - yarn install # Ensure dependencies are installed
+  extends: .corepack_job_template
   parallel:
     matrix:
       - NODE_VERSION: ['20', '22'] # Corresponds to image: node:${NODE_VERSION}
@@ -39,6 +44,7 @@ cache: &node_modules_cache
 
 install_dependencies:
   stage: setup
+  extends: .corepack_job_template
   script:
     - echo "Installing dependencies..."
     - yarn install
@@ -80,9 +86,8 @@ unit_tests:
 
 build_package:
   stage: build
-  image: node:20 # Or your primary build Node version
+  extends: .corepack_job_template
   script:
-    - yarn install
     - yarn build
   artifacts:
     paths:
@@ -142,10 +147,10 @@ sonarqube_scan:
 semantic_release:
   stage: release
   image: node:20 # Use a Node version compatible with semantic-release and your project
-  before_script:
+  extends: .corepack_job_template
+  script:
     - yarn install
     - apt-get update && apt-get install -y --no-install-recommends git # Ensure git is available
-  script:
     - yarn semantic-release
   # GITHUB_TOKEN is for @semantic-release/github (to create GitHub releases)
   # NPM_TOKEN is for @semantic-release/npm (to publish to npm)
