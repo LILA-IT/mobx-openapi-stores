@@ -192,7 +192,7 @@ export class CrudCollectionStore<
         if (useCache)
           item = await new Promise((resolve) => resolve(this.getById(args.id)));
         if (!useCache || !item) {
-          item = (await this.apiCall<TApi>(endpoint, args)) as unknown as
+          item = (await this.apiCall<TApi, Endpoint, Args>(endpoint, args)) as unknown as
             | TSingle
             | undefined;
           if (!item) return;
@@ -236,9 +236,10 @@ export class CrudCollectionStore<
           items = await new Promise((resolve) => resolve(this.collection));
         }
         if (!useCache || !items) {
-          items = (await this.apiCall<TApi>(endpoint, args)) as unknown as
-            | TCollection
-            | undefined;
+          items = (await this.apiCall<TApi, Endpoint, Args>(
+            endpoint,
+            args,
+          )) as unknown as TCollection | undefined;
           if (items) {
             // Only set collection if API call was successful and returned items
             this.setCollection(items);
@@ -282,9 +283,12 @@ export class CrudCollectionStore<
         args: Args extends undefined ? never : Args,
       ) => {
         // Assuming the result of apiCall is the created item of type TSingle or compatible
-        const item = await this.apiCall<TApi>(endpoint, args);
+        const item = (await this.apiCall<TApi, Endpoint, Args>(
+          endpoint,
+          args,
+        )) as unknown as TSingle | undefined;
         if (item) {
-          this.addItem(item as TSingle); // Cast to TSingle if `apiCall` returns broader type like `any`
+          this.addItem(item); // Cast to TSingle if `apiCall` returns broader type like `any`
         } else {
           throw new Error('Create Endpoint did not return an item');
         }
@@ -320,9 +324,12 @@ export class CrudCollectionStore<
         args: Args extends undefined ? never : Args,
       ) => {
         // Assuming the result of apiCall is the updated item of type TSingle or compatible
-        const item = await this.apiCall<TApi>(endpoint, args);
+        const item = (await this.apiCall<TApi, Endpoint, Args>(
+          endpoint,
+          args,
+        )) as unknown as TSingle | undefined;
         if (item) {
-          this.editItem(item as TSingle); // Cast to TSingle if `apiCall` returns broader type
+          this.editItem(item); // Cast to TSingle if `apiCall` returns broader type
         } else {
           throw new Error('Update Endpoint did not return an item');
         }
@@ -361,8 +368,9 @@ export class CrudCollectionStore<
               id: ArrayElement<TCollection>['id'];
             },
       ) => {
-        await this.apiCall<TApi>(endpoint, args);
+        const result = await this.apiCall<TApi, Endpoint, Args>(endpoint, args);
         this.removeItem(args.id);
+        return result;
       },
     ),
   );
