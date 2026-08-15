@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ApiStore } from '..';
-import { type ApiType } from 'src/types';
+import { type ApiType } from '../../types';
 
 describe('ApiStore', () => {
   it('should be a class', () => {

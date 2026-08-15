@@ -2,7 +2,7 @@ import { action, computed, makeObservable, observable, set } from 'mobx';
 
 import { ApiStore } from './ApiStore';
 import { type ApiConfig, type ApiType } from '../types/ApiType';
-import { type SingleType } from 'src/types';
+import { type SingleType } from '../types';
 
 /**
  * @class SingleStore

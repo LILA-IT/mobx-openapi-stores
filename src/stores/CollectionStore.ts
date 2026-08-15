@@ -1,71 +1,49 @@
+import assign from 'lodash.assign';
+import find from 'lodash.find';
 import { action, computed, makeObservable, observable } from 'mobx';
 
-import { type CollectionType, type ArrayElement, type SingleType } from '../types';
-
+import { type ArrayElement, type CollectionType, type SingleType } from '../types';
 import { type ApiConfig, type ApiType } from '../types/ApiType';
 import { SingleStore } from './SingleStore';
-import assign from 'lodash.assign';
-import map from 'lodash.map';
-import remove from 'lodash.remove';
-import find from 'lodash.find';
 
 /**
  * @class CollectionStore
- * @template TApi - The type of the generated API client, inherited from `SingleStore`.
- * @template TSingle - The type of individual entities within the collection. Must conform to `SingleType`.
- * @template TCollection - The type of the collection itself, defaulting to `TSingle[]`.
- * @description A store for managing a collection (array) of observable entities.
- * It extends `SingleStore` to also manage a `current` item (useful for selections) and inherits API capabilities.
- * Provides common methods for manipulating the collection such as adding, updating, and removing items.
+ * @template TApi - The generated API client type inherited from `SingleStore`.
+ * @template TSingle - The entity type stored in the collection.
+ * @template TCollection - The collection type, defaulting to `TSingle[]`.
+ * @description Manages an observable collection of entities together with the
+ * `current` selection and API capabilities inherited from `SingleStore`.
+ * Provides helpers for adding, updating, and removing items.
+ *
+ * Collection transforms use native `Array.map` / `Array.filter` and publish via
+ * `setCollection` so MobX observers see a replaced array reference. Lodash
+ * `assign` / `find` remain for in-place merges and lookups.
  *
  * @extends SingleStore<TApi, TSingle>
  *
- * @property {TCollection} collection - A computed property providing access to the observable array of entities (`_collection`).
+ * @property {TCollection} collection - Computed access to the observable collection.
  *
- * @method setCollection - Action to replace the entire collection with a new one.
- * @method editCollection - Action that also replaces the entire collection (alias for `setCollection`).
- * @method addItem - Action to add a new item to the collection. Optionally sets the new item as `current`.
- * @method setItem - Action to update an existing item in the collection by its `id` or add it if not present.
- *                 Optionally updates/sets the `current` item if its `id` matches.
- * @method editItem - Action to update an existing item in the collection by its `id`.
- *                  If `setCurrent` is true or the updated item is the `current` one, `current` is also updated.
- * @method removeItem - Action to remove an item from the collection by its `id`. Clears `current` if the removed item was current.
- * @method getById - Retrieves an item from the collection by its `id`. Checks `current` first, then searches the collection.
+ * @method setCollection - Replaces the complete collection.
+ * @method editCollection - Alias for replacing the complete collection.
+ * @method addItem - Appends an item and optionally selects it.
+ * @method setItem - Replaces an existing item with the same ID.
+ * @method editItem - Merges changes into an existing item with the same ID.
+ * @method removeItem - Removes an item by ID.
+ * @method getById - Finds an item by ID, checking `current` first.
  *
  * @example
- * // Using createApi function (new approach)
  * const productStore = new CollectionStore<ProductApi, Product>({
  *   name: 'ProductListStore',
- *   createApi: (config) => new ProductApi(config)
+ *   createApi: (config) => new ProductApi(config),
  * });
  *
+ * productStore.setCollection(products);
+ * productStore.addItem(newProduct, true);
+ *
  * @example
- * // Extending with custom logic (recommended for complex cases)
  * class ProductListStore extends CollectionStore<ProductApi, Product> {
- *   constructor(name?: string) {
- *     super(name || 'ProductListStore');
- *     makeObservable(this, { addAndSelectProduct: action });
- *   }
- *
- *   // initApi would be implemented here
- *   initApi(config: ProductApiConfig) {
- *     this.setApi(new ProductApi(config));
- *   }
- *
- *   async addAndSelectProduct(productData: CreateProductDto) {
- *     // Assuming createProduct returns the full product with an id
- *     const newProduct = await this.apiCall('createProduct', { createProductDto: productData });
- *     if (newProduct) {
- *       this.addItem(newProduct as Product, true); // Add and set as current
- *     }
- *   }
- * }
- *
- * @example
- * // Backwards compatible usage
- * class LegacyProductStore extends CollectionStore<ProductApi, Product> {
  *   constructor() {
- *     super('LegacyProductStore'); // Old signature still works
+ *     super('ProductListStore');
  *   }
  * }
  */
@@ -76,27 +54,25 @@ export class CollectionStore<
 > extends SingleStore<TApi, TSingle> {
   /**
    * @protected
-   * @property {TCollection} _collection - The internal observable array holding the collection of entities.
+   * @property {TCollection} _collection - Internal observable collection.
    * @observable
    */
   _collection: TCollection = [] as unknown as TCollection;
 
   /**
    * @constructor
-   * @description Creates a new CollectionStore instance. Supports both legacy and new constructor signatures for backwards compatibility.
+   * @description Creates a collection store using either the legacy name or
+   * an options object that can also construct the API client.
    * @param {string | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi }} [nameOrOptions]
-   *        - Legacy: A string representing the store name
-   *        - New: An options object with optional name and createApi function
+   * The store name, or store configuration.
    *
    * @example
-   * // Legacy signature (backwards compatible)
-   * const store1 = new CollectionStore('MyStore');
+   * const legacyStore = new CollectionStore<ProductApi, Product>('Products');
    *
    * @example
-   * // New signature with createApi function
-   * const store2 = new CollectionStore({
-   *   name: 'MyStore',
-   *   createApi: (config) => new MyApi(config)
+   * const store = new CollectionStore<ProductApi, Product>({
+   *   name: 'Products',
+   *   createApi: (config) => new ProductApi(config),
    * });
    */
   constructor(
@@ -113,15 +89,15 @@ export class CollectionStore<
       addItem: action,
       editItem: action,
       removeItem: action,
-      getById: false, // Not directly an observable, but good to list in makeObservable if its behavior is tied to observables
+      getById: false,
       setItem: action,
     });
   }
 
   /**
    * @property collection
-   * @description Computed property that provides access to the observable collection of entities.
-   * @returns {TCollection} The current collection of entities.
+   * @description Provides the current observable collection.
+   * @returns {TCollection} The current collection.
    * @computed
    */
   get collection() {
@@ -131,7 +107,8 @@ export class CollectionStore<
   /**
    * @method setCollection
    * @description Replaces the entire current collection with a new collection.
-   * @param {TCollection} newCollection - The new collection to set.
+   * @param {TCollection} newCollection - The replacement collection.
+   * @returns {void}
    * @action
    */
   setCollection = (newCollection: TCollection) => {
@@ -140,8 +117,10 @@ export class CollectionStore<
 
   /**
    * @method editCollection
-   * @description Replaces the entire current collection with an updated collection. Alias for `setCollection`.
-   * @param {TCollection} updatedCollection - The updated collection to set.
+   * @description Replaces the complete collection. This is an alias for
+   * `setCollection`.
+   * @param {TCollection} updatedCollection - The replacement collection.
+   * @returns {void}
    * @action
    */
   editCollection = (updatedCollection: TCollection) => {
@@ -150,9 +129,11 @@ export class CollectionStore<
 
   /**
    * @method addItem
-   * @description Adds a new item to the end of the collection.
-   * @param {TSingle} newItem - The new item to add to the collection.
-   * @param {boolean} [setCurrent=true] - If true (default), the newly added item will also be set as the `current` item in the store.
+   * @description Appends an item to the observable collection and optionally
+   * makes it the current item.
+   * @param {TSingle} newItem - The item to append.
+   * @param {boolean} [setCurrent=true] - Whether to select the appended item.
+   * @returns {void}
    * @action
    */
   addItem = (newItem: TSingle, setCurrent: boolean = true) => {
@@ -162,30 +143,32 @@ export class CollectionStore<
 
   /**
    * @method setItem
-   * @description Updates an existing item in the collection or adds it if it's not found by ID.
-   *              If the item's ID matches the `current` item's ID, or if `setCurrent` is true, the `current` item is also updated/set.
-   * @param {TSingle} item - The item to set/update in the collection.
-   * @param {boolean} [setCurrent=true] - If true (default) and the item is being added or its ID matches `current`,
-   *                                      it updates/sets the `current` item.
+   * @description Updates an existing item in the collection or leaves the
+   * collection unchanged when no ID match is found. Native `Array.map` builds
+   * the next array; `setCollection` replaces the observable reference.
+   * @param {TSingle} item - The complete replacement item.
+   * @param {boolean} [setCurrent=true] - Whether to select the item. A matching
+   * current item is always replaced.
+   * @returns {void}
    * @action
    */
   setItem = (item: TSingle, setCurrent: boolean = true) => {
     if (setCurrent || this.current?.id === item.id) this.setCurrent(item);
     this.setCollection(
-      // @ts-expect-error lodash types might not perfectly align with TCollection generic constraints
-      map(this._collection, (collectionItem: ArrayElement<TCollection>) =>
+      this._collection.map((collectionItem) =>
         collectionItem.id === item.id ? item : collectionItem,
-      ),
+      ) as TCollection,
     );
   };
 
   /**
    * @method editItem
-   * @description Updates an existing item in the collection by its ID. Properties of the existing item are merged with the `updatedItem`.
-   *              If `setCurrent` is true, or if the `current` item has the same ID as `updatedItem`, the `current` item is also updated.
-   * @param {TSingle} updatedItem - An object containing the properties to update on the existing item. Must include the `id`.
-   * @param {boolean} [setCurrent=true] - If true (default), the `current` item in the store will be updated if its ID matches.
-   *                                      If the `current` item itself is being updated, it will always be updated regardless of this flag.
+   * @description Merges an update into every collection item with the same ID
+   * using lodash `assign`, then publishes via native `Array.map` + `setCollection`.
+   * @param {TSingle} updatedItem - The item data to merge, including its ID.
+   * @param {boolean} [setCurrent=true] - Whether to select the update. A
+   * matching current item is always updated.
+   * @returns {void}
    * @action
    */
   editItem = (updatedItem: TSingle, setCurrent: boolean = true) => {
@@ -193,39 +176,42 @@ export class CollectionStore<
       this.setCurrent(updatedItem);
     }
     this.setCollection(
-      // @ts-expect-error lodash types might not perfectly align with TCollection/TSingle constraints
-      map(this._collection, (itemInCollection: ArrayElement<TCollection>) =>
+      this._collection.map((itemInCollection) =>
         itemInCollection.id === updatedItem.id
           ? assign(itemInCollection, updatedItem)
           : itemInCollection,
-      ),
+      ) as TCollection,
     );
   };
 
   /**
    * @method removeItem
-   * @description Removes an item from the collection by its ID.
-   *              If the removed item was the `current` item, `current` will be set to `null`.
-   * @param {ArrayElement<TCollection>['id']} id - The ID of the item to remove.
+   * @description Removes an item by ID using native `Array.filter`, then
+   * replaces the observable collection through `setCollection`. Clears
+   * `current` when it references the removed ID.
+   * @param {ArrayElement<TCollection>['id']} id - The ID to remove.
+   * @returns {void}
    * @action
    */
   removeItem = (id: ArrayElement<TCollection>['id']) => {
     if (this.current?.id === id) this.setCurrent(null);
-    remove(this._collection, (item) => item.id === id);
+    this.setCollection(this._collection.filter((item) => item.id !== id) as TCollection);
   };
 
   /**
    * @method getById
-   * @description Retrieves an item by its ID. It first checks if the `current` item matches the ID,
-   *              then searches the collection.
-   * @param {ArrayElement<TCollection>['id']} id - The ID of the item to retrieve.
-   * @returns {ArrayElement<TCollection> | TSingle | undefined} The found item, or undefined if not found.
-   *          The return type can be an element from the collection or the `current` (TSingle) item.
+   * @description Returns the matching current item first, otherwise searches
+   * the collection with `find`.
+   * @param {ArrayElement<TCollection>['id']} id - The ID to find.
+   * @returns {ArrayElement<TCollection> | TSingle | undefined} The matching
+   * item, or `undefined` when no item exists.
    */
   getById = (
     id: ArrayElement<TCollection>['id'],
   ): ArrayElement<TCollection> | TSingle | undefined => {
     if (this.current?.id === id) return this.current;
-    return find(this.collection, (item) => item.id === id) as ArrayElement<TCollection>; // Cast assuming find returns a TCollection element or undefined.
+    return find(this.collection, (item) => item.id === id) as
+      | ArrayElement<TCollection>
+      | undefined;
   };
 }

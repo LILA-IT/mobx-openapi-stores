@@ -1,4 +1,4 @@
-import { type BaseAPI, type Configuration } from 'src/openapi-generator';
+import { type BaseAPI, type Configuration } from '../openapi-generator';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export type ApiType<T extends Configuration = Configuration> = BaseAPI & {

@@ -16,7 +16,7 @@ import { SingleStore } from './SingleStore';
 import find from 'lodash.find';
 import flatMap from 'lodash.flatmap';
 import _remove from 'lodash.remove';
-import { type ObjectType, type SingleType } from 'src/types';
+import { type ObjectType, type SingleType } from '../types';
 
 /**
  * @class ObjectStore

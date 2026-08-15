@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { CollectionStore } from '../CollectionStore';
-import type { ApiType } from 'src/types';
+import type { ApiType } from '../../types';
 
 type SampleType = {
   id: number;

@@ -1,0 +1,49 @@
+# npm trusted publishing (OIDC). Do not add long-lived NPM_TOKEN here.
+# Configure the matching trusted publisher on npmjs.com:
+#   Organization: LILA-IT
+#   Repository: mobx-openapi-stores
+#   Workflow filename: publish.yml
+name: publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - name: Enable Corepack
+        run: corepack enable && corepack install
+
+      - name: Install
+        run: yarn install --immutable
+
+      - name: Build
+        run: yarn build
+
+      # semantic-release tags the release commit before the chore(release)
+      # version bump commit, so align package.json with the Git tag.
+      - name: Set version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          npm version "${VERSION}" --no-git-tag-version --allow-same-version
+
+      - name: Publish
+        # OIDC trusted publishing — no NODE_AUTH_TOKEN / NPM_TOKEN.
+        run: npm publish --access public

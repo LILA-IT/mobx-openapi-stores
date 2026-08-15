@@ -1,10 +1,20 @@
 import { action, computed, flow, makeObservable, observable } from 'mobx';
 import { toFlowGeneratorFunction } from 'to-flow-generator-function';
 
-import { callApi } from '../utils/api';
-
 import { type ApiConfig, type ApiType } from '../types/ApiType';
+import { callApi } from '../utils/api';
+import type { ApiMethodArgs, ApiMethodName } from '../utils/api/types/ApiMethod.type';
+import { actionBoundCompat } from '../utils/mobx/actionBoundCompat';
 import { LoadingStore } from './LoadingStore';
+
+/**
+ * Options for {@link ApiStore.apiCall}.
+ * @property {boolean} [disableLoading=false] - When true, the call does not toggle
+ *           the store loading flag (useful for background prefetch).
+ */
+export type ApiCallOptions = {
+  disableLoading?: boolean;
+};
 
 /**
  * @class ApiStore
@@ -16,6 +26,9 @@ import { LoadingStore } from './LoadingStore';
  * This store provides two ways to initialize the API client:
  * 1. Pass a `createApi` function in the constructor options
  * 2. Override the `initApi` method in a subclass
+ *
+ * Endpoint typing uses distributive {@link ApiMethodName} / {@link ApiMethodArgs}
+ * helpers so unioned OpenAPI clients expose method keys correctly.
  *
  * @extends LoadingStore
  *
@@ -137,7 +150,9 @@ export class ApiStore<
     }
 
     makeObservable(this, {
-      initApi: action.bound,
+      // Prefer bound actions (MobX 6: action.bound, MobX 7: actionBound) so
+      // prototype methods keep `this` when used as callbacks.
+      initApi: actionBoundCompat,
       setApi: action,
       apiIsSet: computed,
       api: observable,
@@ -145,12 +160,14 @@ export class ApiStore<
       apiCall: flow,
     });
 
-    this.setIsLoading(true); // Typically, an API store might start by fetching initial data or waiting for config.
+    // Typically starts loading until config arrives / initApi runs.
+    this.setIsLoading(true);
   }
 
   /**
    * @method setApi
    * @description Sets the API client instance for the store. Typically called from within `initApi`.
+   *              Also clears the loading flag after the client is attached.
    * @param {TApi} api - The API client instance.
    * @action
    */
@@ -190,38 +207,43 @@ export class ApiStore<
 
   /**
    * @method apiCall
-   * @template TGenericApi - The API client type used for this specific call. Defaults to `TApi` (the store's primary API type).
-   * @template TGenericEndpoint - A key (method name) of `TGenericApi`.
-   * @template TEndpointArgs - The type of the arguments for the specified `TGenericEndpoint`.
+   * @template Api - The API client type used for this specific call. Defaults to `TApi`.
+   * @template Endpoint - A method name of `Api` (via {@link ApiMethodName}).
+   * @template Args - The argument type for `Endpoint` (via {@link ApiMethodArgs}).
    * @description A MobX flow-wrapped method for making generic API calls using the initialized API client (`this.api`).
-   *              It automatically handles setting the store's loading state before and after the call.
-   * @param {TGenericEndpoint} endpoint - The name of the API method to call (must be a key of `TApi`).
-   * @param {TEndpointArgs} args - The arguments to pass to the API method.
-   * @returns {Promise<any>} A promise that resolves with the result of the API call. The actual return type depends on the called API endpoint.
+   *              It automatically handles setting the store's loading state before and after the call unless
+   *              `disableLoading` is set. Invokes generated methods with `.call` so `this` stays bound.
+   *
+   * When TypeScript struggles with the base generic across many subclasses, re-bind a typed
+   * `apiCall` wrapper in the subclass that delegates here.
+   * @param {Endpoint} endpoint - The name of the API method to call.
+   * @param {Args} args - The arguments to pass to the API method.
+   * @param {ApiCallOptions} [options] - Optional call options (e.g. `disableLoading`).
+   * @returns {Promise<unknown>} A promise that resolves with the result of the API call.
    * @throws {Error} If the API client (`this.api`) has not been initialized.
    * @flow
    */
   apiCall = flow(
     toFlowGeneratorFunction(
       async <
-        Api extends ApiType = TApi, // Internal generic for the API type
-        Endpoint extends keyof Api = keyof Api, // Internal generic for the endpoint key
-        // @ts-expect-error marks as error but works
-        Args extends Parameters<Api[Endpoint]>[0] = Parameters<
-          // @ts-expect-error marks as error but works
-          TApi[Endpoint]
-        >[0],
+        Api extends ApiType = TApi,
+        Endpoint extends ApiMethodName<Api> = ApiMethodName<Api>,
+        Args extends ApiMethodArgs<Api, Endpoint> = ApiMethodArgs<Api, Endpoint>,
       >(
-        endpoint: Endpoint, // This is the actual parameter name for the endpoint
-        args: Args extends undefined ? never : Args, // This is the actual parameter name for arguments
+        endpoint: Endpoint,
+        args: Args extends undefined ? never : Args,
+        { disableLoading = false }: ApiCallOptions = {},
       ) => {
         try {
           if (!this.api) throw new Error(`${this.name} Api is not set`);
-          this.setIsLoading(true);
-          // @ts-expect-error marks as error but works
-          return await callApi<Api, Endpoint, Args>(endpoint, args, this.api);
+          if (!disableLoading) this.setIsLoading(true);
+          return await callApi<Api, Endpoint, Args>(
+            endpoint,
+            args,
+            this.api as unknown as Api,
+          );
         } finally {
-          this.setIsLoading(false);
+          if (!disableLoading) this.setIsLoading(false);
         }
       },
     ),

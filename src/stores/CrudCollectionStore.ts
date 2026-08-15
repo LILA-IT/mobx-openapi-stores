@@ -1,9 +1,9 @@
 import { flow, makeObservable } from 'mobx';
 import { toFlowGeneratorFunction } from 'to-flow-generator-function';
 
-import { type CollectionType, type SingleType, type ArrayElement } from '../types';
-
+import { type ArrayElement, type CollectionType, type SingleType } from '../types';
 import { type ApiConfig, type ApiType } from '../types/ApiType';
+import type { ApiMethodArgs, ApiMethodName } from '../utils/api/types/ApiMethod.type';
 import { CollectionStore } from './CollectionStore';
 
 /**
@@ -167,18 +167,13 @@ export class CrudCollectionStore<
   _fetch = flow(
     toFlowGeneratorFunction(
       async <
-        Endpoint extends keyof TApi = keyof TApi,
-        // @ts-expect-error marks as error but works
-        Args extends Parameters<TApi[Endpoint]>[0] = Parameters<
-          // @ts-expect-error marks as error but works
-          TApi[Endpoint]
-        >[0],
+        Endpoint extends ApiMethodName<TApi>,
+        Args extends ApiMethodArgs<TApi, Endpoint>,
       >(
         endpoint: Endpoint,
-        args: Args extends undefined // Ensure args is not undefined if Endpoint expects no args, then make it required with id
-          ? never // Should not happen if endpoint expects no args, but types demand it
+        args: Args extends undefined
+          ? never
           : Args & {
-              // If Args is defined, ensure it includes id
               id: ArrayElement<TCollection>['id'];
             },
         {
@@ -192,7 +187,7 @@ export class CrudCollectionStore<
         if (useCache)
           item = await new Promise((resolve) => resolve(this.getById(args.id)));
         if (!useCache || !item) {
-          item = (await this.apiCall<TApi, Endpoint, Args>(endpoint, args)) as unknown as
+          item = (await this.apiCall(endpoint as never, args as never)) as unknown as
             | TSingle
             | undefined;
           if (!item) return;
@@ -219,12 +214,8 @@ export class CrudCollectionStore<
   _fetchAll = flow(
     toFlowGeneratorFunction(
       async <
-        Endpoint extends keyof TApi,
-        // @ts-expect-error marks as error but works
-        Args extends Parameters<TApi[Endpoint]>[0] = Parameters<
-          // @ts-expect-error marks as error but works
-          TApi[Endpoint]
-        >[0],
+        Endpoint extends ApiMethodName<TApi>,
+        Args extends ApiMethodArgs<TApi, Endpoint>,
       >(
         endpoint: Endpoint,
         args: Args extends undefined ? never : Args,
@@ -232,19 +223,15 @@ export class CrudCollectionStore<
       ) => {
         let items: TCollection | undefined;
         if (useCache && this.collection.length > 0) {
-          // Check if collection has items for cache to be useful
           items = await new Promise((resolve) => resolve(this.collection));
         }
         if (!useCache || !items) {
-          items = (await this.apiCall<TApi, Endpoint, Args>(
-            endpoint,
-            args,
-          )) as unknown as TCollection | undefined;
+          items = (await this.apiCall(endpoint as never, args as never)) as unknown as
+            | TCollection
+            | undefined;
           if (items) {
-            // Only set collection if API call was successful and returned items
             this.setCollection(items);
           } else {
-            // Optionally handle cases where API returns null/undefined for a collection (e.g., set to empty array)
             this.setCollection([] as unknown as TCollection);
             console.warn(
               `[${this.name}] API call returned null/undefined for collection`,
@@ -272,23 +259,17 @@ export class CrudCollectionStore<
   _create = flow(
     toFlowGeneratorFunction(
       async <
-        Endpoint extends keyof TApi,
-        // @ts-expect-error marks as error but works
-        Args extends Parameters<TApi[Endpoint]>[0] = Parameters<
-          // @ts-expect-error marks as error but works
-          TApi[Endpoint]
-        >[0],
+        Endpoint extends ApiMethodName<TApi>,
+        Args extends ApiMethodArgs<TApi, Endpoint>,
       >(
         endpoint: Endpoint,
         args: Args extends undefined ? never : Args,
       ) => {
-        // Assuming the result of apiCall is the created item of type TSingle or compatible
-        const item = (await this.apiCall<TApi, Endpoint, Args>(
-          endpoint,
-          args,
-        )) as unknown as TSingle | undefined;
+        const item = (await this.apiCall(endpoint as never, args as never)) as unknown as
+          | TSingle
+          | undefined;
         if (item) {
-          this.addItem(item); // Cast to TSingle if `apiCall` returns broader type like `any`
+          this.addItem(item);
         } else {
           throw new Error('Create Endpoint did not return an item');
         }
@@ -313,23 +294,17 @@ export class CrudCollectionStore<
   _update = flow(
     toFlowGeneratorFunction(
       async <
-        Endpoint extends keyof TApi,
-        // @ts-expect-error marks as error but works
-        Args extends Parameters<TApi[Endpoint]>[0] = Parameters<
-          // @ts-expect-error marks as error but works
-          TApi[Endpoint]
-        >[0],
+        Endpoint extends ApiMethodName<TApi>,
+        Args extends ApiMethodArgs<TApi, Endpoint>,
       >(
         endpoint: Endpoint,
         args: Args extends undefined ? never : Args,
       ) => {
-        // Assuming the result of apiCall is the updated item of type TSingle or compatible
-        const item = (await this.apiCall<TApi, Endpoint, Args>(
-          endpoint,
-          args,
-        )) as unknown as TSingle | undefined;
+        const item = (await this.apiCall(endpoint as never, args as never)) as unknown as
+          | TSingle
+          | undefined;
         if (item) {
-          this.editItem(item); // Cast to TSingle if `apiCall` returns broader type
+          this.editItem(item);
         } else {
           throw new Error('Update Endpoint did not return an item');
         }
@@ -353,22 +328,17 @@ export class CrudCollectionStore<
   _delete = flow(
     toFlowGeneratorFunction(
       async <
-        Endpoint extends keyof TApi,
-        // @ts-expect-error marks as error but works
-        Args extends Parameters<TApi[Endpoint]>[0] = Parameters<
-          // @ts-expect-error marks as error but works
-          TApi[Endpoint]
-        >[0],
+        Endpoint extends ApiMethodName<TApi>,
+        Args extends ApiMethodArgs<TApi, Endpoint>,
       >(
         endpoint: Endpoint,
-        args: Args extends undefined // Ensure args is not undefined if Endpoint expects no args
-          ? never // Should not happen, but types demand id for removeItem
+        args: Args extends undefined
+          ? never
           : Args & {
-              // If Args is defined, ensure it includes id for removeItem
               id: ArrayElement<TCollection>['id'];
             },
       ) => {
-        const result = await this.apiCall<TApi, Endpoint, Args>(endpoint, args);
+        const result = await this.apiCall(endpoint as never, args as never);
         this.removeItem(args.id);
         return result;
       },

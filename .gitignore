@@ -1,4 +1,12 @@
 lib
 node_modules
+coverage
+*.tsbuildinfo
+.sonar
+.DS_Store
+.yarn/install-state.gz
 
-.github/workflows/
+# Do not mirror GitLab-duplicate CI as GitHub Actions.
+# Exception: .github/workflows/publish.yml is intentional (npm trusted publishing).
+.github/workflows/*
+!.github/workflows/publish.yml

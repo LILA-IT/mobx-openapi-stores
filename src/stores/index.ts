@@ -33,7 +33,21 @@ import { CollectionStore } from './CollectionStore';
 import { CrudCollectionStore } from './CrudCollectionStore';
 import { LoadingStore } from './LoadingStore';
 import { ObjectStore } from './ObjectStore';
+import { PaginationStore } from './PaginationStore';
 import { SingleStore } from './SingleStore';
+
+export type { ApiCallOptions } from './ApiStore';
+export type { CrudFetchOptions } from './CrudCollectionStore';
+export type {
+  FetchPageOptions,
+  FetchPageParams,
+  FetchPagesApiOptions,
+  MultiPageResponse,
+  PaginatedPage,
+  PaginationInner,
+  PaginationOuter,
+  PaginationState,
+} from './PaginationStore';
 
 /**
  * @exports ApiStore - Base store for managing an API client instance and making API calls
@@ -50,4 +64,5 @@ export {
   CrudCollectionStore,
   SingleStore,
   ObjectStore,
+  PaginationStore,
 };

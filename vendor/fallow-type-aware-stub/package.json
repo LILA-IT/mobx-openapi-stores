@@ -1,0 +1,6 @@
+{
+  "name": "fallow-type-aware",
+  "version": "3.16.0",
+  "description": "Stub to avoid optional typescript@7 pull while Yarn patcher is broken for TS7",
+  "private": true
+}

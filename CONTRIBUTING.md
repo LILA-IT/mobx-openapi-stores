@@ -16,16 +16,16 @@ Please review our [Code of Conduct](./CODE_OF_CONDUCT.md). By participating, you
 
 ## :bulb: Asking Questions
 
-If you have any question that does not relate to a bug or a feature request, please use [GitHub Discussions](https://github.com/LILA-IT/ausweischeck/discussions) instead of GitHub issues.
+If you have any question that does not relate to a bug or a feature request, please use [GitHub Discussions](https://github.com/LILA-IT/mobx-openapi-stores/discussions) instead of GitHub issues.
 
 ## :inbox_tray: How can I Contribute?
 
 **GitHub issues**
 
-If you encounter a problem with this library or if you have a new feature you'd like to see in this project, please create [a new issue](https://github.com/LILA-IT/ausweischeck/issues/new/choose).
+If you encounter a problem with this library or if you have a new feature you'd like to see in this project, please create [a new issue](https://github.com/LILA-IT/mobx-openapi-stores/issues/new).
 
-**GitHub Pull requests**
+**Pull requests**
 
 Please leverage the repository's own tools to make sure the code is aligned with our standards:
 
-1. Run all check commands before submitting the PR (`type-check`, `format`, `lint` and `test`)
+1. Run all check commands before submitting (`type-check`, `format`, `lint` and `test`)
