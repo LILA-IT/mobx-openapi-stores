@@ -187,11 +187,16 @@ export class CrudCollectionStore<
         if (useCache)
           item = await new Promise((resolve) => resolve(this.getById(args.id)));
         if (!useCache || !item) {
-          item = (await this.apiCall(endpoint as never, args as never)) as unknown as
-            | TSingle
-            | undefined;
+          const result = (await this.apiCall(endpoint as never, args as never, {
+            exclusiveKey: `fetch:${String(args.id)}`,
+            apply: (payload) => {
+              if (!payload) return;
+              this.setItem(payload as TSingle, setCurrent);
+            },
+          })) as unknown as TSingle | undefined;
+          // Prefer store state so a superseded exclusive fetch does not return stale payload.
+          item = this.getById(args.id) ?? result;
           if (!item) return;
-          this.setItem(item, setCurrent);
         }
         return item;
       },
@@ -226,17 +231,19 @@ export class CrudCollectionStore<
           items = await new Promise((resolve) => resolve(this.collection));
         }
         if (!useCache || !items) {
-          items = (await this.apiCall(endpoint as never, args as never)) as unknown as
-            | TCollection
-            | undefined;
-          if (items) {
-            this.setCollection(items);
-          } else {
-            this.setCollection([] as unknown as TCollection);
-            console.warn(
-              `[${this.name}] API call returned null/undefined for collection`,
-            );
-          }
+          items = (await this.apiCall(endpoint as never, args as never, {
+            exclusiveKey: 'fetchAll',
+            apply: (result) => {
+              if (result) {
+                this.setCollection(result as TCollection);
+                return;
+              }
+              this.setCollection([] as unknown as TCollection);
+              console.warn(
+                `[${this.name}] API call returned null/undefined for collection`,
+              );
+            },
+          })) as unknown as TCollection | undefined;
         }
         return items;
       },
@@ -265,12 +272,12 @@ export class CrudCollectionStore<
         endpoint: Endpoint,
         args: Args extends undefined ? never : Args,
       ) => {
-        const item = (await this.apiCall(endpoint as never, args as never)) as unknown as
-          | TSingle
-          | undefined;
-        if (item) {
-          this.addItem(item);
-        } else {
+        const item = (await this.apiCall(endpoint as never, args as never, {
+          apply: (result) => {
+            if (result) this.addItem(result as TSingle);
+          },
+        })) as unknown as TSingle | undefined;
+        if (!item) {
           throw new Error('Create Endpoint did not return an item');
         }
         return item;
@@ -300,12 +307,12 @@ export class CrudCollectionStore<
         endpoint: Endpoint,
         args: Args extends undefined ? never : Args,
       ) => {
-        const item = (await this.apiCall(endpoint as never, args as never)) as unknown as
-          | TSingle
-          | undefined;
-        if (item) {
-          this.editItem(item);
-        } else {
+        const item = (await this.apiCall(endpoint as never, args as never, {
+          apply: (result) => {
+            if (result) this.editItem(result as TSingle);
+          },
+        })) as unknown as TSingle | undefined;
+        if (!item) {
           throw new Error('Update Endpoint did not return an item');
         }
         return item;
@@ -338,8 +345,11 @@ export class CrudCollectionStore<
               id: ArrayElement<TCollection>['id'];
             },
       ) => {
-        const result = await this.apiCall(endpoint as never, args as never);
-        this.removeItem(args.id);
+        const result = await this.apiCall(endpoint as never, args as never, {
+          apply: () => {
+            this.removeItem(args.id);
+          },
+        });
         return result;
       },
     ),

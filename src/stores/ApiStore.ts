@@ -9,11 +9,24 @@ import { LoadingStore } from './LoadingStore';
 
 /**
  * Options for {@link ApiStore.apiCall}.
- * @property {boolean} [disableLoading=false] - When true, the call does not toggle
- *           the store loading flag (useful for background prefetch).
+ * @property {boolean} [disableLoading=false] - When true, the call does not adjust
+ *           the store loading refcount (useful for background prefetch).
+ * @property {((result: unknown) => void)} [apply] - When set, invoked with the
+ *           result after the call succeeds. By default every successful call applies
+ *           (safe for parallel creates/updates). Pass {@link exclusiveKey} to skip
+ *           apply when a newer call with the same key has started (ignore-stale for
+ *           replacement reads). The promise still resolves even when apply is skipped.
+ * @property {string} [exclusiveKey] - Scope for latest-wins apply. Only the latest
+ *           started `apiCall` with this key may run `apply`. Omit for accumulating
+ *           writes (create / independent update / delete).
+ * @property {string} [loadingKey] - Scope for keyed loading via {@link LoadingStore.isLoadingFor}.
+ *           Defaults to {@link ApiStore.getLoadingKey} (endpoint name unless overridden).
  */
 export type ApiCallOptions = {
   disableLoading?: boolean;
+  apply?: (result: unknown) => void;
+  exclusiveKey?: string;
+  loadingKey?: string;
 };
 
 /**
@@ -97,6 +110,13 @@ export class ApiStore<
   private createApi: ((config: TConfig) => TApi) | null = null;
 
   /**
+   * Per-key generation counters for exclusive (ignore-stale) {@link apiCall} apply.
+   * Keys come from {@link ApiCallOptions.exclusiveKey}.
+   * @private
+   */
+  #apiCallGenerations = new Map<string, number>();
+
+  /**
    * @property {string} name
    * @description The name of the store instance, used for logging and debugging.
    *              Defaults to the class name if not provided.
@@ -173,6 +193,8 @@ export class ApiStore<
    */
   setApi = (api: TApi) => {
     this.api = api;
+    // Absolute clear for init/reconfigure. Do not call while apiCalls are in flight
+    // unless you intend to drop loading indicators for those requests.
     this.setIsLoading(false);
   };
 
@@ -206,19 +228,45 @@ export class ApiStore<
   }
 
   /**
+   * @method getLoadingKey
+   * @description Resolves the default loading scope for an `apiCall`. Override to
+   * include args (e.g. entity id) for swiss-army keyed loading.
+   * @param {PropertyKey} endpoint - API method name.
+   * @param {unknown} _args - Endpoint arguments (unused by default).
+   * @returns {string} Loading key passed to {@link beginLoading} / {@link endLoading}.
+   */
+  getLoadingKey(endpoint: PropertyKey, _args: unknown): string {
+    return String(endpoint);
+  }
+
+  /**
+   * @method isApiCallCurrent
+   * @description Returns true when `generation` is still the latest started call
+   * for `exclusiveKey`. Used by exclusive ignore-stale apply.
+   * @param {string} exclusiveKey - Scope key from {@link ApiCallOptions.exclusiveKey}.
+   * @param {number} generation - Value captured at the start of that `apiCall`.
+   * @returns {boolean}
+   */
+  isApiCallCurrent(exclusiveKey: string, generation: number) {
+    return this.#apiCallGenerations.get(exclusiveKey) === generation;
+  }
+
+  /**
    * @method apiCall
    * @template Api - The API client type used for this specific call. Defaults to `TApi`.
    * @template Endpoint - A method name of `Api` (via {@link ApiMethodName}).
    * @template Args - The argument type for `Endpoint` (via {@link ApiMethodArgs}).
    * @description A MobX flow-wrapped method for making generic API calls using the initialized API client (`this.api`).
-   *              It automatically handles setting the store's loading state before and after the call unless
-   *              `disableLoading` is set. Invokes generated methods with `.call` so `this` stays bound.
+   *              Uses keyed loading refcount (`beginLoading` / `endLoading`) unless `disableLoading` is set.
+   *              Optional `apply` runs after success; with `exclusiveKey`, only the latest started
+   *              call for that key applies (ignore-stale for replacement reads).
+   *              Invokes generated methods with `.call` so `this` stays bound.
    *
    * When TypeScript struggles with the base generic across many subclasses, re-bind a typed
    * `apiCall` wrapper in the subclass that delegates here.
    * @param {Endpoint} endpoint - The name of the API method to call.
    * @param {Args} args - The arguments to pass to the API method.
-   * @param {ApiCallOptions} [options] - Optional call options (e.g. `disableLoading`).
+   * @param {ApiCallOptions} [options] - Optional call options (`disableLoading`, `apply`, `exclusiveKey`, `loadingKey`).
    * @returns {Promise<unknown>} A promise that resolves with the result of the API call.
    * @throws {Error} If the API client (`this.api`) has not been initialized.
    * @flow
@@ -232,18 +280,32 @@ export class ApiStore<
       >(
         endpoint: Endpoint,
         args: Args extends undefined ? never : Args,
-        { disableLoading = false }: ApiCallOptions = {},
+        { disableLoading = false, apply, exclusiveKey, loadingKey }: ApiCallOptions = {},
       ) => {
+        let generation: number | undefined;
+        if (exclusiveKey !== undefined) {
+          generation = (this.#apiCallGenerations.get(exclusiveKey) ?? 0) + 1;
+          this.#apiCallGenerations.set(exclusiveKey, generation);
+        }
+        const resolvedLoadingKey = loadingKey ?? this.getLoadingKey(endpoint, args);
         try {
           if (!this.api) throw new Error(`${this.name} Api is not set`);
-          if (!disableLoading) this.setIsLoading(true);
-          return await callApi<Api, Endpoint, Args>(
+          if (!disableLoading) this.beginLoading(resolvedLoadingKey);
+          const result = await callApi<Api, Endpoint, Args>(
             endpoint,
             args,
             this.api as unknown as Api,
           );
+          if (apply) {
+            const shouldApply =
+              exclusiveKey === undefined ||
+              (generation !== undefined &&
+                this.isApiCallCurrent(exclusiveKey, generation));
+            if (shouldApply) apply(result);
+          }
+          return result;
         } finally {
-          if (!disableLoading) this.setIsLoading(false);
+          if (!disableLoading) this.endLoading(resolvedLoadingKey);
         }
       },
     ),

@@ -174,4 +174,121 @@ describe('CrudCollectionStore reactivity', () => {
     expectBudget(handle, 0);
     handle.dispose();
   });
+
+  it('stale fetchAll apply is skipped when a newer call finishes first (budget N=1)', async () => {
+    type Deferred<T> = {
+      promise: Promise<T>;
+      resolve: (value: T) => void;
+    };
+    function createDeferred<T>(): Deferred<T> {
+      let resolve!: (value: T) => void;
+      const promise = new Promise<T>((res) => {
+        resolve = res;
+      });
+      return { promise, resolve };
+    }
+
+    const slow = createDeferred<Item[]>();
+    const fast = createDeferred<Item[]>();
+    let callCount = 0;
+    const api = createTestApi({
+      findAll: vi.fn(() => {
+        callCount += 1;
+        return callCount === 1 ? slow.promise : fast.promise;
+      }),
+    });
+    const store = createReadyStore(api);
+    const handle = observeSignal(() => collectionFingerprint(store));
+
+    const slowFetch = store.fetchAll();
+    const fastFetch = store.fetchAll();
+
+    fast.resolve([{ id: 'fast', name: 'Fast' }]);
+    await fastFetch;
+    expect(collectionFingerprint(store)).toBe('fast:Fast');
+    expectBudget(handle, 1);
+
+    slow.resolve([{ id: 'slow', name: 'Slow' }]);
+    await slowFetch;
+    // Stale apply skipped — collection stays on the newer result.
+    expect(collectionFingerprint(store)).toBe('fast:Fast');
+    expectBudget(handle, 1);
+    handle.dispose();
+  });
+
+  it('parallel creates both apply (no exclusiveKey on mutations)', async () => {
+    type Deferred<T> = {
+      promise: Promise<T>;
+      resolve: (value: T) => void;
+    };
+    function createDeferred<T>(): Deferred<T> {
+      let resolve!: (value: T) => void;
+      const promise = new Promise<T>((res) => {
+        resolve = res;
+      });
+      return { promise, resolve };
+    }
+
+    const first = createDeferred<Item>();
+    const second = createDeferred<Item>();
+    let callCount = 0;
+    const api = createTestApi({
+      create: vi.fn(() => {
+        callCount += 1;
+        return callCount === 1 ? first.promise : second.promise;
+      }),
+    });
+    const store = createReadyStore(api);
+    store.setCollection([]);
+
+    const createA = store.createItem('A');
+    const createB = store.createItem('B');
+
+    first.resolve({ id: 'a', name: 'A' });
+    await createA;
+    second.resolve({ id: 'b', name: 'B' });
+    await createB;
+
+    expect(store.collection).toEqual([
+      { id: 'a', name: 'A' },
+      { id: 'b', name: 'B' },
+    ]);
+  });
+
+  it('stale fetchOne returns store state for the id, not the stale payload', async () => {
+    type Deferred<T> = {
+      promise: Promise<T>;
+      resolve: (value: T) => void;
+    };
+    function createDeferred<T>(): Deferred<T> {
+      let resolve!: (value: T) => void;
+      const promise = new Promise<T>((res) => {
+        resolve = res;
+      });
+      return { promise, resolve };
+    }
+
+    const slow = createDeferred<Item>();
+    const fast = createDeferred<Item>();
+    let callCount = 0;
+    const api = createTestApi({
+      findOne: vi.fn(() => {
+        callCount += 1;
+        return callCount === 1 ? slow.promise : fast.promise;
+      }),
+    });
+    const store = createReadyStore(api);
+    store.setCollection([{ id: '1', name: 'Initial' }]);
+
+    const slowFetch = store.fetchOne('1', { setCurrent: false });
+    const fastFetch = store.fetchOne('1', { setCurrent: false });
+
+    fast.resolve({ id: '1', name: 'Fresh' });
+    await expect(fastFetch).resolves.toEqual({ id: '1', name: 'Fresh' });
+    expect(store.collection).toEqual([{ id: '1', name: 'Fresh' }]);
+
+    slow.resolve({ id: '1', name: 'Stale' });
+    await expect(slowFetch).resolves.toEqual({ id: '1', name: 'Fresh' });
+    expect(store.collection).toEqual([{ id: '1', name: 'Fresh' }]);
+  });
 });

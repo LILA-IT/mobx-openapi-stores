@@ -132,8 +132,8 @@ describe('ApiStore reactivity', () => {
   });
 });
 
-describe('ApiStore reactivity — current behavior (loading races)', () => {
-  it('current behavior: overlapping apiCalls — first completion clears isLoading while second still in flight', async () => {
+describe('ApiStore reactivity — loading refcount + ignore-stale', () => {
+  it('overlapping apiCalls keep isLoading true until the last call settles (budget N=2)', async () => {
     const first = createDeferred<string>();
     const second = createDeferred<string>();
     let callCount = 0;
@@ -152,17 +152,14 @@ describe('ApiStore reactivity — current behavior (loading races)', () => {
       key: 'second',
     });
 
-    // Both started: true then true again (same value → no second fire under MobX Object.is).
     expect(store.isLoading).toBe(true);
     expectBudget(handle, 1);
 
     first.resolve('value:first');
     await call1;
 
-    // CURRENT BEHAVIOR: boolean loading clears when the first call's finally runs,
-    // even though call2 is still in flight.
-    expect(store.isLoading).toBe(false);
-    expectBudget(handle, 2);
+    expect(store.isLoading).toBe(true);
+    expectBudget(handle, 1);
 
     second.resolve('value:second');
     await call2;
@@ -170,12 +167,42 @@ describe('ApiStore reactivity — current behavior (loading races)', () => {
     expect(await call1).toBe('value:first');
     expect(await call2).toBe('value:second');
     expect(store.isLoading).toBe(false);
-    // Second finally also writes false; same-value assignment does not notify again.
     expectBudget(handle, 2);
     handle.dispose();
   });
 
-  it('current behavior: completion-order — last finishing apiCall wins the final isLoading write (still false)', async () => {
+  it('apply without exclusiveKey runs for every successful call (parallel creates)', async () => {
+    const first = createDeferred<string>();
+    const second = createDeferred<string>();
+    let callCount = 0;
+    const store = createReadyStore(
+      createTestApi(() => {
+        callCount += 1;
+        return callCount === 1 ? first.promise : second.promise;
+      }),
+    );
+    const applied: string[] = [];
+
+    const call1 = store.apiCall<TestApi, 'getValue', { key: string }>(
+      'getValue',
+      { key: 'first' },
+      { apply: (result) => applied.push(String(result)) },
+    );
+    const call2 = store.apiCall<TestApi, 'getValue', { key: string }>(
+      'getValue',
+      { key: 'second' },
+      { apply: (result) => applied.push(String(result)) },
+    );
+
+    first.resolve('value:first');
+    await call1;
+    second.resolve('value:second');
+    await call2;
+
+    expect(applied).toEqual(['value:first', 'value:second']);
+  });
+
+  it('apply with exclusiveKey runs only for the latest started call in that key', async () => {
     const slow = createDeferred<string>();
     const fast = createDeferred<string>();
     let callCount = 0;
@@ -185,30 +212,175 @@ describe('ApiStore reactivity — current behavior (loading races)', () => {
         return callCount === 1 ? slow.promise : fast.promise;
       }),
     );
-    const handle = observeSignal(() => store.isLoading);
+    const applied: string[] = [];
+    const exclusiveKey = 'fetchAll';
 
-    const slowCall = store.apiCall<TestApi, 'getValue', { key: string }>('getValue', {
-      key: 'slow',
-    });
-    const fastCall = store.apiCall<TestApi, 'getValue', { key: string }>('getValue', {
-      key: 'fast',
-    });
+    const slowCall = store.apiCall<TestApi, 'getValue', { key: string }>(
+      'getValue',
+      { key: 'slow' },
+      {
+        exclusiveKey,
+        apply: (result) => applied.push(String(result)),
+      },
+    );
+    const fastCall = store.apiCall<TestApi, 'getValue', { key: string }>(
+      'getValue',
+      { key: 'fast' },
+      {
+        exclusiveKey,
+        apply: (result) => applied.push(String(result)),
+      },
+    );
 
-    expect(store.isLoading).toBe(true);
-
-    // Fast call completes first → clears loading while slow is still pending.
     fast.resolve('value:fast');
     await expect(fastCall).resolves.toBe('value:fast');
-    expect(store.isLoading).toBe(false);
+    expect(applied).toEqual(['value:fast']);
 
-    // Slow call completes last; apiCall returns its own value (no shared data slot).
-    // Loading finally writes false again (no-op notify).
     slow.resolve('value:slow');
     await expect(slowCall).resolves.toBe('value:slow');
-    expect(store.isLoading).toBe(false);
+    // Stale slow completion still resolves, but exclusive apply is skipped.
+    expect(applied).toEqual(['value:fast']);
+  });
 
-    expect(handle.observer.mock.calls.map(([value]) => value)).toEqual([true, false]);
+  it('exclusiveKey scopes do not cancel apply across different keys', async () => {
+    const first = createDeferred<string>();
+    const second = createDeferred<string>();
+    let callCount = 0;
+    const store = createReadyStore(
+      createTestApi(() => {
+        callCount += 1;
+        return callCount === 1 ? first.promise : second.promise;
+      }),
+    );
+    const applied: string[] = [];
+
+    const call1 = store.apiCall<TestApi, 'getValue', { key: string }>(
+      'getValue',
+      { key: 'a' },
+      {
+        exclusiveKey: 'fetch:1',
+        apply: (result) => applied.push(String(result)),
+      },
+    );
+    const call2 = store.apiCall<TestApi, 'getValue', { key: string }>(
+      'getValue',
+      { key: 'b' },
+      {
+        exclusiveKey: 'fetch:2',
+        apply: (result) => applied.push(String(result)),
+      },
+    );
+
+    second.resolve('value:b');
+    await call2;
+    first.resolve('value:a');
+    await call1;
+
+    expect(applied).toEqual(['value:b', 'value:a']);
+  });
+
+  it('setApi absolute-clears isLoading even if apiCalls are still in flight', async () => {
+    const pending = createDeferred<string>();
+    const store = createReadyStore(createTestApi(() => pending.promise));
+    const handle = observeSignal(() => store.isLoading);
+
+    const inFlight = store.apiCall<TestApi, 'getValue', { key: string }>('getValue', {
+      key: 'x',
+    });
+    expect(store.isLoading).toBe(true);
+
+    store.setApi(createTestApi());
+    expect(store.isLoading).toBe(false);
     expectBudget(handle, 2);
+
+    pending.resolve('value:x');
+    await inFlight;
+    expect(store.isLoading).toBe(false);
     handle.dispose();
+  });
+});
+
+describe('ApiStore reactivity — scoped loading keys', () => {
+  it('defaults loadingKey to the endpoint name', async () => {
+    const pending = createDeferred<string>();
+    const store = createReadyStore(createTestApi(() => pending.promise));
+
+    const call = store.apiCall<TestApi, 'getValue', { key: string }>('getValue', {
+      key: 'x',
+    });
+
+    expect(store.isLoadingFor('getValue')).toBe(true);
+    expect(store.isLoadingFor('other')).toBe(false);
+    expect(store.isLoading).toBe(true);
+
+    pending.resolve('value:x');
+    await call;
+    expect(store.isLoadingFor('getValue')).toBe(false);
+    expect(store.isLoading).toBe(false);
+  });
+
+  it('loadingKey option isolates concurrent calls', async () => {
+    const first = createDeferred<string>();
+    const second = createDeferred<string>();
+    let callCount = 0;
+    const store = createReadyStore(
+      createTestApi(() => {
+        callCount += 1;
+        return callCount === 1 ? first.promise : second.promise;
+      }),
+    );
+
+    const call1 = store.apiCall<TestApi, 'getValue', { key: string }>(
+      'getValue',
+      { key: 'a' },
+      { loadingKey: 'fetch:1' },
+    );
+    const call2 = store.apiCall<TestApi, 'getValue', { key: string }>(
+      'getValue',
+      { key: 'b' },
+      { loadingKey: 'fetch:2' },
+    );
+
+    expect(store.isLoadingFor('fetch:1')).toBe(true);
+    expect(store.isLoadingFor('fetch:2')).toBe(true);
+    expect(store.isLoading).toBe(true);
+
+    first.resolve('value:a');
+    await call1;
+    expect(store.isLoadingFor('fetch:1')).toBe(false);
+    expect(store.isLoadingFor('fetch:2')).toBe(true);
+    expect(store.isLoading).toBe(true);
+
+    second.resolve('value:b');
+    await call2;
+    expect(store.isLoading).toBe(false);
+  });
+
+  it('getLoadingKey override can include args (swiss-army case)', async () => {
+    const pending = createDeferred<string>();
+
+    class KeyedStore extends ApiStore<TestApi> {
+      override getLoadingKey(endpoint: PropertyKey, args: unknown): string {
+        const id =
+          args && typeof args === 'object' && 'key' in args
+            ? (args as { key: string }).key
+            : 'unknown';
+        return `${String(endpoint)}:${id}`;
+      }
+    }
+
+    const store = new KeyedStore('KeyedStore');
+    store.setApi(createTestApi(() => pending.promise));
+
+    const call = store.apiCall<TestApi, 'getValue', { key: string }>('getValue', {
+      key: 'user-7',
+    });
+
+    expect(store.isLoadingFor('getValue:user-7')).toBe(true);
+    expect(store.isLoadingFor('getValue')).toBe(false);
+
+    pending.resolve('value:user-7');
+    await call;
+    expect(store.isLoadingFor('getValue:user-7')).toBe(false);
   });
 });

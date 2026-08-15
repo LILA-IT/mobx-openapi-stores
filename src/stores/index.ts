@@ -66,3 +66,5 @@ export {
   ObjectStore,
   PaginationStore,
 };
+
+export { DEFAULT_LOADING_KEY } from './LoadingStore';

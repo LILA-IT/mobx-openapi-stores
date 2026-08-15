@@ -56,7 +56,7 @@ describe('LoadingStore reactivity', () => {
     handle.dispose();
   });
 
-  it('setIsLoading with the same value is a no-op (budget N=0; MobX Object.is)', () => {
+  it('setIsLoading with the same value is a no-op (budget N=0)', () => {
     const store = new LoadingStore();
     store.setIsLoading(true);
     const handle = observeSignal(() => store.isLoading);
@@ -66,5 +66,66 @@ describe('LoadingStore reactivity', () => {
     expectBudget(handle, 0);
     expect(store.isLoading).toBe(true);
     handle.dispose();
+  });
+
+  it('beginLoading/endLoading keeps isLoading true until the last holder ends', () => {
+    const store = new LoadingStore();
+    const handle = observeSignal(() => store.isLoading);
+
+    store.beginLoading();
+    store.beginLoading();
+    expect(store.isLoading).toBe(true);
+    expectBudget(handle, 1);
+
+    store.endLoading();
+    expect(store.isLoading).toBe(true);
+    expectBudget(handle, 1);
+
+    store.endLoading();
+    expect(store.isLoading).toBe(false);
+    expectBudget(handle, 2);
+    handle.dispose();
+  });
+
+  it('isLoadingFor isolates keys while isLoading is any-key', () => {
+    const store = new LoadingStore();
+    const anyHandle = observeSignal(() => store.isLoading);
+    const keyHandle = observeSignal(() => store.isLoadingFor('fetchAll'));
+
+    store.beginLoading('fetchAll');
+    expect(store.isLoadingFor('fetchAll')).toBe(true);
+    expect(store.isLoadingFor('create')).toBe(false);
+    expect(store.isLoading).toBe(true);
+    expectBudget(anyHandle, 1);
+    expectBudget(keyHandle, 1);
+
+    store.beginLoading('create');
+    expect(store.isLoadingFor('create')).toBe(true);
+    expectBudget(anyHandle, 1);
+    expectBudget(keyHandle, 1);
+
+    store.endLoading('fetchAll');
+    expect(store.isLoadingFor('fetchAll')).toBe(false);
+    expect(store.isLoading).toBe(true);
+    expectBudget(keyHandle, 2);
+    expectBudget(anyHandle, 1);
+
+    store.endLoading('create');
+    expect(store.isLoading).toBe(false);
+    expectBudget(anyHandle, 2);
+    anyHandle.dispose();
+    keyHandle.dispose();
+  });
+
+  it('setIsLoading(false) clears all keyed holders', () => {
+    const store = new LoadingStore();
+    store.beginLoading('a');
+    store.beginLoading('b');
+
+    store.setIsLoading(false);
+
+    expect(store.isLoading).toBe(false);
+    expect(store.isLoadingFor('a')).toBe(false);
+    expect(store.isLoadingFor('b')).toBe(false);
   });
 });

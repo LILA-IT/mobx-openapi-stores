@@ -662,13 +662,17 @@ export abstract class PaginationStore<
         if (useCache) item = await Promise.resolve(this.getById(args.id));
         if (useCache && item) return item;
 
-        item = (await this.__apiCall(endpoint, args as never, {
+        const result = (await this.apiCall(endpoint as never, args as never, {
           disableLoading,
+          exclusiveKey: `fetch:${String(args.id)}`,
+          apply: (payload) => {
+            if (!payload) return;
+            this.setItem(payload as TSingle);
+          },
         })) as unknown as TSingle | undefined;
-        if (!item) return undefined;
 
-        this.setItem(item);
-        return item;
+        // Prefer store state so a superseded exclusive fetch does not return stale payload.
+        return this.getById(args.id) ?? result;
       },
     ),
   );

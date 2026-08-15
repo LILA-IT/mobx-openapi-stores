@@ -50,40 +50,36 @@ This package provides the following core store classes:
 
 ### 1. `LoadingStore`
 
-The most basic store, providing a simple `isLoading` observable property and `setIsLoading` action.
+Keyed loading refcounts for asynchronous work. `isLoading` is true while any key is active; `isLoadingFor(key)` scopes UI to one concern.
 
 **Purpose**: To be extended by other stores that need to track loading states for asynchronous operations.
 
 **Key Members**:
 
-- `isLoading: boolean` (computed): True if an operation is in progress.
-- `setIsLoading(loading: boolean)` (action): Sets the loading state.
+- `isLoading: boolean` (computed): True while at least one loading holder is active on any key.
+- `isLoadingFor(key: string)`: True while that key has an active holder.
+- `beginLoading(key?)` / `endLoading(key?)` (actions): Increment/decrement a key (default `*`).
+- `setIsLoading(loading: boolean)` (action): Absolute update — `true` ensures loading; `false` clears all keys.
 
 **Example**:
 
 ```typescript
 import { LoadingStore } from 'mobx-openapi-stores';
-import { makeObservable, action } from 'mobx';
 
 class MyCustomLoadingComponentStore extends LoadingStore {
-  constructor() {
-    super();
-    // makeObservable for custom actions if any
-  }
-
   async performSomeTask() {
-    this.setIsLoading(true);
+    this.beginLoading('task');
     try {
       // ... your async logic ...
       await new Promise((resolve) => setTimeout(resolve, 1000));
     } finally {
-      this.setIsLoading(false);
+      this.endLoading('task');
     }
   }
 }
 
 const store = new MyCustomLoadingComponentStore();
-// autorun(() => console.log(store.isLoading));
+// autorun(() => console.log(store.isLoading, store.isLoadingFor('task')));
 // store.performSomeTask();
 ```
 
@@ -106,7 +102,9 @@ Extends `LoadingStore`. Manages an instance of your OpenAPI-generated API client
 - `apiIsSet: boolean` (computed): True if the API client is initialized.
 - `setApi(api: TApi)` (action): Sets the API client.
 - `initApi(config: TConfig)` (action, **must be implemented by subclasses**): Initializes and sets the API client.
-- `apiCall(endpoint: keyof TApi, args: any)` (flow): Makes an API call using the specified endpoint method on `this.api`.
+- `apiCall(endpoint, args, options?)` (flow): Calls an endpoint on `this.api`. Uses keyed loading refcount unless `disableLoading` is set (`loadingKey` defaults to the endpoint via `getLoadingKey`; override or pass `loadingKey` for swiss-army scoping). Optional `apply(result)` runs after success; with `exclusiveKey`, only the latest started call for that key applies (ignore-stale for replacement reads).
+- `getLoadingKey(endpoint, args)`: Default loading scope (`String(endpoint)`); override to include ids/args.
+- `isLoadingFor(key)`: Inherited keyed loading probe (see `LoadingStore`).
 
 **Example**:
 
