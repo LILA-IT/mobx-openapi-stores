@@ -1,6 +1,6 @@
 {
   "name": "mobx-openapi-stores",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A MobX-based store implementation for OpenAPI generated clients",
   "packageManager": "yarn@4.9.2",
   "type": "module",

@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/LILA-IT/mobx-openapi-stores/compare/v1.0.0...v1.0.1) (2026-08-15)
+
+
+### Bug Fixes
+
+* **ci:** make GitHub mirror sync work for npm releases ([6caaeff](https://github.com/LILA-IT/mobx-openapi-stores/commit/6caaeff55c390cc0514caa9a7aa63dd44c020455))
+
 # 1.0.0 (2026-08-15)
 
 

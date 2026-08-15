@@ -5,8 +5,10 @@
 # - Never push GitLab commits/ancestors (they may contain scrubbed host URLs).
 # - Create a GitHub commit whose tree matches the synced ref, parented on
 #   github/main.
-# - Recreate missing v* tags on GitHub against a commit with the same tree as
-#   the internal tag (so GitHub Actions trusted publishing can run).
+# - Scrub private host URLs (e.g. changelog commit links) to the public GitHub
+#   repo before publishing the tree.
+# - Recreate missing v* tags on GitHub against that scrubbed tree so npm
+#   trusted publishing can run.
 set -euo pipefail
 
 GITHUB_REPO="${GITHUB_REPO:-LILA-IT/mobx-openapi-stores}"
@@ -19,15 +21,12 @@ fi
 # Avoid printing the token via `set -x` or remote -v in logs.
 GITHUB_REMOTE_URL="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPO}.git"
 
-# Pattern is base64-encoded so this script itself does not embed private host
-# names as searchable literals in the public mirror tree.
+# Patterns are base64-encoded so this script does not embed private host names
+# as searchable literals in the public mirror tree.
 LEAK_REGEX="$(printf '%s' 'Z2l0bGFiXC5jc2Nsb3VkfGNzY2xvdWRcLmlv' | base64 -d)"
-
-echo "Checking HEAD tree for private host references..."
-if git grep -nEi "${LEAK_REGEX}" HEAD -- . ':(exclude)scripts/sync-github.sh'; then
-  echo "Refusing to mirror: private host reference present in HEAD tree" >&2
-  exit 1
-fi
+# gitlab.cscloud.io/lila/packages/mobx-openapi-stores
+PRIVATE_PROJECT_PATH="$(printf '%s' 'Z2l0bGFiLmNzY2xvdWQuaW8vbGlsYS9wYWNrYWdlcy9tb2J4LW9wZW5hcGktc3RvcmVz' | base64 -d)"
+PUBLIC_PROJECT_PATH="github.com/${GITHUB_REPO}"
 
 git config user.name "${GIT_AUTHOR_NAME:-github-mirror[bot]}"
 git config user.email "${GIT_AUTHOR_EMAIL:-github-mirror[bot]@users.noreply.github.com}"
@@ -58,6 +57,28 @@ ensure_mirror_commit() {
   git commit-tree "${tree}" -m "${message}"
 }
 
+scrub_private_hosts_in_index() {
+  local tmp_index="$1"
+  local path mode blob content scrubbed new_blob
+
+  while IFS= read -r path; do
+    [[ -z "${path}" ]] && continue
+    mode="$(GIT_INDEX_FILE="${tmp_index}" git ls-files --stage -- "${path}" | awk '{print $1}')"
+    content="$(GIT_INDEX_FILE="${tmp_index}" git cat-file -p ":${path}")"
+    scrubbed="$(printf '%s' "${content}" | sed "s|${PRIVATE_PROJECT_PATH}|${PUBLIC_PROJECT_PATH}|g")"
+    if printf '%s' "${scrubbed}" | grep -qEi "${LEAK_REGEX}"; then
+      echo "Unable to scrub private host references from ${path}" >&2
+      return 1
+    fi
+    new_blob="$(printf '%s' "${scrubbed}" | git hash-object -w --stdin)"
+    GIT_INDEX_FILE="${tmp_index}" git update-index --cacheinfo "${mode},${new_blob},${path}"
+    echo "Scrubbed private host references in ${path}" >&2
+  done < <(
+    GIT_INDEX_FILE="${tmp_index}" git grep -lEi --cached "${LEAK_REGEX}" -- . \
+      ':(exclude)scripts/sync-github.sh' || true
+  )
+}
+
 public_tree_from_ref() {
   local ref="$1"
   local tmp_index tree
@@ -68,8 +89,15 @@ public_tree_from_ref() {
     .gitlab-ci.yml \
     .yarn/install-state.gz \
     sonar-project.properties >/dev/null
+  scrub_private_hosts_in_index "${tmp_index}"
   tree="$(GIT_INDEX_FILE="${tmp_index}" git write-tree)"
   rm -f "${tmp_index}"
+
+  if git grep -nEi "${LEAK_REGEX}" "${tree}" -- . ':(exclude)scripts/sync-github.sh'; then
+    echo "Refusing to mirror: private host reference remains in public tree" >&2
+    return 1
+  fi
+
   printf '%s\n' "${tree}"
 }
 
@@ -98,11 +126,6 @@ push_missing_version_tags() {
     fi
 
     tag_tree="$(public_tree_from_ref "${tag}")"
-    if git grep -nEi "${LEAK_REGEX}" "${tag_tree}" -- . ':(exclude)scripts/sync-github.sh'; then
-      echo "Refusing to mirror tag ${tag}: private host reference in public tree" >&2
-      exit 1
-    fi
-
     mirror_commit="$(ensure_mirror_commit "${tag_tree}" "chore(mirror): ${tag}")"
     echo "Pushing tag ${tag} -> ${mirror_commit}"
     git push github "${mirror_commit}:refs/heads/main"
