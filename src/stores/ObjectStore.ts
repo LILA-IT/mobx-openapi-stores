@@ -125,8 +125,7 @@ export class ObjectStore<
    */
   constructor(
     nameOrOptions?:
-      | string
-      | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi },
+      string | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi },
   ) {
     super(nameOrOptions);
     makeObservable(this, {
@@ -273,7 +272,7 @@ export class ObjectStore<
     const itemIndex = entry.findIndex((item) => item.id === itemId);
     if (itemIndex === -1) return;
     entry[itemIndex] = itemUpdateData;
-    this.setEntry(entryId as TKey, entry as unknown as TObject[TKey]);
+    this.setEntry(entryId, entry as unknown as TObject[TKey]);
   }
 
   /**
@@ -299,7 +298,7 @@ export class ObjectStore<
     const initialLength = entry.length;
     const next = entry.filter((item) => item.id !== itemId);
     if (next.length < initialLength)
-      this.setEntry(resolvedEntryId as TKey, next as unknown as TObject[TKey]);
+      this.setEntry(resolvedEntryId, next as unknown as TObject[TKey]);
   }
 
   #collectionEntryPairs(): ObjectEntryPair[] {

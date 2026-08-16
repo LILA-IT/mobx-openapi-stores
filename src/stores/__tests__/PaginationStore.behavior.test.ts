@@ -1,8 +1,8 @@
 import { flow, isObservableMap } from 'mobx';
-import { toFlowGeneratorFunction } from 'to-flow-generator-function';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type ApiType } from '../../types/ApiType';
+import { toFlowGeneratorFunction } from '../../utils/api/flow';
 import {
   type FetchPageParams,
   type MultiPageResponse,

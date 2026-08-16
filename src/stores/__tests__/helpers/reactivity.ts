@@ -43,10 +43,7 @@ export function observeSignal<T>(
 /**
  * Asserts the reaction fired exactly `expected` times (notification budget).
  */
-export function expectBudget(
-  handle: Pick<ObserveHandle<unknown>, 'calls' | 'observer'>,
-  expected: number,
-): void {
+export function expectBudget(handle: { calls: number }, expected: number): void {
   expect(handle.calls).toBe(expected);
 }
 

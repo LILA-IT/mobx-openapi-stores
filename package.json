@@ -19,6 +19,7 @@
     "README.md",
     "LICENSE.md"
   ],
+  "sideEffects": false,
   "scripts": {
     "clean": "rm -rf lib",
     "build": "tsup",
@@ -38,31 +39,28 @@
     "semantic-release": "semantic-release",
     "commitlint": "commitlint"
   },
-  "dependencies": {
-    "to-flow-generator-function": "^1.0.0"
-  },
   "devDependencies": {
-    "@commitlint/cli": "^19.8.1",
-    "@commitlint/config-conventional": "^19.8.1",
-    "@eslint/js": "^9.33.0",
-    "@semantic-release/changelog": "^6.0.3",
+    "@commitlint/cli": "^21",
+    "@commitlint/config-conventional": "^21",
+    "@eslint/js": "^10",
+    "@semantic-release/changelog": "^7",
     "@semantic-release/commit-analyzer": "^13.0.1",
-    "@semantic-release/git": "^10.0.1",
-    "@semantic-release/gitlab": "^13.2.6",
-    "@semantic-release/npm": "^12.0.2",
-    "@semantic-release/release-notes-generator": "^14.0.3",
-    "@vitest/coverage-v8": "3.2.4",
-    "eslint": "^9.33.0",
+    "@semantic-release/git": "^11",
+    "@semantic-release/gitlab": "^13.3.3",
+    "@semantic-release/npm": "^13",
+    "@semantic-release/release-notes-generator": "^14.1.1",
+    "@vitest/coverage-v8": "^4",
+    "eslint": "^10",
     "fallow": "^3.16.0",
-    "jiti": "^2.5.1",
-    "lefthook": "^1.12.3",
+    "jiti": "^2.7.0",
+    "lefthook": "^2.1.10",
     "mobx": "^6.13.7",
-    "prettier": "^3.6.2",
-    "semantic-release": "^24.2.7",
+    "prettier": "^3.9.6",
+    "semantic-release": "^25",
     "tsup": "^8.5.1",
     "typescript": "~5.9.2",
-    "typescript-eslint": "^8.39.0",
-    "vitest": "^3.2.4"
+    "typescript-eslint": "^8.67.0",
+    "vitest": "^4"
   },
   "peerDependencies": {
     "mobx": ">=6.0.0"

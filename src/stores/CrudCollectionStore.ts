@@ -1,8 +1,8 @@
 import { flow, makeObservable } from 'mobx';
-import { toFlowGeneratorFunction } from 'to-flow-generator-function';
 
 import { type ArrayElement, type CollectionType, type SingleType } from '../types';
 import { type ApiConfig, type ApiType } from '../types/ApiType';
+import { toFlowGeneratorFunction } from '../utils/api/flow';
 import type { ApiMethodArgs, ApiMethodName } from '../utils/api/types/ApiMethod.type';
 import { CollectionStore } from './CollectionStore';
 
@@ -138,8 +138,7 @@ export class CrudCollectionStore<
    */
   constructor(
     nameOrOptions?:
-      | string
-      | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi },
+      string | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi },
   ) {
     super(nameOrOptions);
     makeObservable(this, {
@@ -231,7 +230,7 @@ export class CrudCollectionStore<
           items = await new Promise((resolve) => resolve(this.collection));
         }
         if (!useCache || !items) {
-          items = (await this.apiCall(endpoint as never, args as never, {
+          items = (await this.apiCall(endpoint as never, args, {
             exclusiveKey: 'fetchAll',
             apply: (result) => {
               if (result) {
@@ -272,7 +271,7 @@ export class CrudCollectionStore<
         endpoint: Endpoint,
         args: Args extends undefined ? never : Args,
       ) => {
-        const item = (await this.apiCall(endpoint as never, args as never, {
+        const item = (await this.apiCall(endpoint as never, args, {
           apply: (result) => {
             if (result) this.addItem(result as TSingle);
           },
@@ -307,7 +306,7 @@ export class CrudCollectionStore<
         endpoint: Endpoint,
         args: Args extends undefined ? never : Args,
       ) => {
-        const item = (await this.apiCall(endpoint as never, args as never, {
+        const item = (await this.apiCall(endpoint as never, args, {
           apply: (result) => {
             if (result) this.editItem(result as TSingle);
           },

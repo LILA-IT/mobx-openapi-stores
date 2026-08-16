@@ -304,9 +304,12 @@ import {
   BudgetApi,
   UpdateBudgetDto,
 } from './your-api-client'; // Assuming these types from your generated API client
-import { CrudCollectionStore, type ApiResult } from 'mobx-openapi-stores';
+import {
+  CrudCollectionStore,
+  type ApiResult,
+  toFlowGeneratorFunction,
+} from 'mobx-openapi-stores';
 import { action, flow, makeObservable } from 'mobx';
-import { toFlowGeneratorFunction } from 'to-flow-generator-function'; // Utility to help with MobX flow typing
 
 // Define TApi for convenience if used multiple times
 type Api = BudgetApi;
