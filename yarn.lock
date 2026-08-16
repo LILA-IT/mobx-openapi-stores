@@ -5612,6 +5612,7 @@ __metadata:
     mobx: "npm:^6.13.7"
     prettier: "npm:^3.6.2"
     semantic-release: "npm:^24.2.7"
+    to-flow-generator-function: "npm:^1.0.0"
     tsup: "npm:^8.5.1"
     typescript: "npm:~5.9.2"
     typescript-eslint: "npm:^8.39.0"
@@ -7626,6 +7627,13 @@ __metadata:
   version: 4.0.3
   resolution: "tinyspy@npm:4.0.3"
   checksum: 10c0/0a92a18b5350945cc8a1da3a22c9ad9f4e2945df80aaa0c43e1b3a3cfb64d8501e607ebf0305e048e3c3d3e0e7f8eb10cea27dc17c21effb73e66c4a3be36373
+  languageName: node
+  linkType: hard
+
+"to-flow-generator-function@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "to-flow-generator-function@npm:1.0.0"
+  checksum: 10c0/6e5f2137313fc99ab72dac16ed743d5c1584eabc06b33ecd4c0764672b4a1adc01563e92a23aaf05b9ccd45b8075fa9ba5c7a0129dead9c1b780800c0304100d
   languageName: node
   linkType: hard
 

@@ -38,6 +38,9 @@
     "semantic-release": "semantic-release",
     "commitlint": "commitlint"
   },
+  "dependencies": {
+    "to-flow-generator-function": "^1.0.0"
+  },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",

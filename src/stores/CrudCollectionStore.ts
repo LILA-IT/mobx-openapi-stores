@@ -1,8 +1,8 @@
 import { flow, makeObservable } from 'mobx';
+import { toFlowGeneratorFunction } from 'to-flow-generator-function';
 
 import { type ArrayElement, type CollectionType, type SingleType } from '../types';
 import { type ApiConfig, type ApiType } from '../types/ApiType';
-import { toFlowGeneratorFunction } from '../utils/api/flow';
 import type { ApiMethodArgs, ApiMethodName } from '../utils/api/types/ApiMethod.type';
 import { CollectionStore } from './CollectionStore';
 

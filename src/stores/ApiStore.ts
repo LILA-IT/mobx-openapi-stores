@@ -1,8 +1,8 @@
 import { action, computed, flow, makeObservable, observable } from 'mobx';
+import { toFlowGeneratorFunction } from 'to-flow-generator-function';
 
 import { type ApiConfig, type ApiType } from '../types/ApiType';
 import { callApi } from '../utils/api';
-import { toFlowGeneratorFunction } from '../utils/api/flow';
 import type { ApiMethodArgs, ApiMethodName } from '../utils/api/types/ApiMethod.type';
 import { actionBoundCompat } from '../utils/mobx/actionBoundCompat';
 import { LoadingStore } from './LoadingStore';
