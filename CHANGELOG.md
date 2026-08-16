@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/LILA-IT/mobx-openapi-stores/compare/v1.0.1...v1.0.2) (2026-08-16)
+
+
+### Bug Fixes
+
+* **stores:** invalidate loading tickets after absolute clear ([64f4eda](https://github.com/LILA-IT/mobx-openapi-stores/commit/64f4eda9bb765055defbd5dce0ab11f6fbdaa983))
+
 ## [1.0.1](https://github.com/LILA-IT/mobx-openapi-stores/compare/v1.0.0...v1.0.1) (2026-08-15)
 
 

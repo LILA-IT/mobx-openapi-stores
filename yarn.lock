@@ -1940,31 +1940,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/lodash.assign@npm:^4.2.9":
-  version: 4.2.9
-  resolution: "@types/lodash.assign@npm:4.2.9"
-  dependencies:
-    "@types/lodash": "npm:*"
-  checksum: 10c0/eba70a066c1aed811dc7777fce4b5b84445bd103fdcfdaa701a6fd790f700942dfbfb98d64ee52436c8a6081e143f2bba79bea86cceacb932ca2b05f951decd9
-  languageName: node
-  linkType: hard
-
-"@types/lodash.find@npm:^4.6.9":
-  version: 4.6.9
-  resolution: "@types/lodash.find@npm:4.6.9"
-  dependencies:
-    "@types/lodash": "npm:*"
-  checksum: 10c0/d3bc7e160e00b192b62c8e1a38934fadf18fa4a90349db319abcca4395cfbc33cba439ca024e286a915dccd0c135515477fdf02fae05ec0320a35efb305ffb81
-  languageName: node
-  linkType: hard
-
-"@types/lodash@npm:*":
-  version: 4.17.16
-  resolution: "@types/lodash@npm:4.17.16"
-  checksum: 10c0/cf017901b8ab1d7aabc86d5189d9288f4f99f19a75caf020c0e2c77b8d4cead4db0d0b842d009b029339f92399f49f34377dd7c2721053388f251778b4c23534
-  languageName: node
-  linkType: hard
-
 "@types/node@npm:*":
   version: 26.2.0
   resolution: "@types/node@npm:26.2.0"
@@ -5191,13 +5166,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash.assign@npm:^4.2.0":
-  version: 4.2.0
-  resolution: "lodash.assign@npm:4.2.0"
-  checksum: 10c0/77e9a28edcb41655e5f5b4b07ec55a5f9bbd6f020f64474acd66c94ce256ed26451f59e5eb421fc4e5ea79d3939a2e2b3a6abeaa0da47bfd1ccd64dfb21f89a0
-  languageName: node
-  linkType: hard
-
 "lodash.camelcase@npm:^4.3.0":
   version: 4.3.0
   resolution: "lodash.camelcase@npm:4.3.0"
@@ -5216,13 +5184,6 @@ __metadata:
   version: 4.1.2
   resolution: "lodash.escaperegexp@npm:4.1.2"
   checksum: 10c0/484ad4067fa9119bb0f7c19a36ab143d0173a081314993fe977bd00cf2a3c6a487ce417a10f6bac598d968364f992153315f0dbe25c9e38e3eb7581dd333e087
-  languageName: node
-  linkType: hard
-
-"lodash.find@npm:^4.6.0":
-  version: 4.6.0
-  resolution: "lodash.find@npm:4.6.0"
-  checksum: 10c0/0238f3abc0b87aa441820ab0ab31a81156e1809a66285f454fbea18cbdf4d16572d504dd9e96c22df8a36b81d0272bca9205d09d217d61f9b53fa3358023377f
   languageName: node
   linkType: hard
 
@@ -5643,19 +5604,14 @@ __metadata:
     "@semantic-release/gitlab": "npm:^13.2.6"
     "@semantic-release/npm": "npm:^12.0.2"
     "@semantic-release/release-notes-generator": "npm:^14.0.3"
-    "@types/lodash.assign": "npm:^4.2.9"
-    "@types/lodash.find": "npm:^4.6.9"
     "@vitest/coverage-v8": "npm:3.2.4"
     eslint: "npm:^9.33.0"
     fallow: "npm:^3.16.0"
     jiti: "npm:^2.5.1"
     lefthook: "npm:^1.12.3"
-    lodash.assign: "npm:^4.2.0"
-    lodash.find: "npm:^4.6.0"
     mobx: "npm:^6.13.7"
     prettier: "npm:^3.6.2"
     semantic-release: "npm:^24.2.7"
-    to-flow-generator-function: "npm:^1.0.0"
     tsup: "npm:^8.5.1"
     typescript: "npm:~5.9.2"
     typescript-eslint: "npm:^8.39.0"
@@ -7670,13 +7626,6 @@ __metadata:
   version: 4.0.3
   resolution: "tinyspy@npm:4.0.3"
   checksum: 10c0/0a92a18b5350945cc8a1da3a22c9ad9f4e2945df80aaa0c43e1b3a3cfb64d8501e607ebf0305e048e3c3d3e0e7f8eb10cea27dc17c21effb73e66c4a3be36373
-  languageName: node
-  linkType: hard
-
-"to-flow-generator-function@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "to-flow-generator-function@npm:1.0.0"
-  checksum: 10c0/6e5f2137313fc99ab72dac16ed743d5c1584eabc06b33ecd4c0764672b4a1adc01563e92a23aaf05b9ccd45b8075fa9ba5c7a0129dead9c1b780800c0304100d
   languageName: node
   linkType: hard
 

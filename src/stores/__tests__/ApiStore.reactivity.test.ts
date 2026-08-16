@@ -298,6 +298,26 @@ describe('ApiStore reactivity — loading refcount + ignore-stale', () => {
     expect(store.isLoading).toBe(false);
     handle.dispose();
   });
+
+  it('clears sticky setIsLoading(true) when an abandoned apiCall finishes after absolute clear', async () => {
+    const pending = createDeferred<string>();
+    const store = createReadyStore(createTestApi(() => pending.promise));
+
+    const inFlight = store.apiCall<TestApi, 'getValue', { key: string }>('getValue', {
+      key: 'x',
+    });
+    expect(store.isLoading).toBe(true);
+
+    store.setIsLoading(false);
+    expect(store.isLoading).toBe(false);
+
+    store.setIsLoading(true);
+    expect(store.isLoading).toBe(true);
+
+    pending.resolve('value:x');
+    await inFlight;
+    expect(store.isLoading).toBe(false);
+  });
 });
 
 describe('ApiStore reactivity — scoped loading keys', () => {

@@ -67,4 +67,4 @@ export {
   PaginationStore,
 };
 
-export { DEFAULT_LOADING_KEY } from './LoadingStore';
+export { DEFAULT_LOADING_KEY, type LoadingTicket } from './LoadingStore';

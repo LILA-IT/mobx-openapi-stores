@@ -1,8 +1,13 @@
 /**
- * CollectionStore mutation benches after the native Array cutover.
+ * CollectionStore mutation benches after native Array + Object.assign/find.
  *
- * Compare against the lodash baseline from `chore/benchmark-baseline`
- * (`setItem` / `editItem` / `removeItem` / `getById` on 1000 items).
+ * Lodash assign/find baseline (same machine, pre-cutover):
+ * - editItem (lodash.assign + map) ≈ 293.90 ops/s
+ * - getById (lodash.find) ≈ 327.11 ops/s
+ *
+ * Native after cutover (same machine):
+ * - editItem (Object.assign + map) ≈ 335.74 ops/s
+ * - getById (Array.find) ≈ 363.84 ops/s
  */
 import { bench, describe } from 'vitest';
 
@@ -21,13 +26,13 @@ const createFilledStore = (size: number) => {
   return store;
 };
 
-describe('CollectionStore mutation (native Array + setCollection)', () => {
+describe('CollectionStore mutation (native Array + Object.assign/find)', () => {
   bench('setItem (native map + setCollection) x1000', () => {
     const store = createFilledStore(1000);
     store.setItem({ id: 500, name: 'updated' }, false);
   });
 
-  bench('editItem (assign + native map + setCollection) x1000', () => {
+  bench('editItem (Object.assign + native map + setCollection) x1000', () => {
     const store = createFilledStore(1000);
     store.editItem({ id: 500, name: 'patched' }, false);
   });
@@ -37,7 +42,7 @@ describe('CollectionStore mutation (native Array + setCollection)', () => {
     store.removeItem(500);
   });
 
-  bench('getById (lodash.find) x1000', () => {
+  bench('getById (Array.find) x1000', () => {
     const store = createFilledStore(1000);
     store.getById(500);
   });

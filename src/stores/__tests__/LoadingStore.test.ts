@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { LoadingStore } from '../LoadingStore';
+import { LoadingStore, DEFAULT_LOADING_KEY } from '../LoadingStore';
 import { expectBudget, observeSignal } from './helpers/reactivity';
 
 describe('LoadingStore', () => {
@@ -127,5 +127,18 @@ describe('LoadingStore reactivity', () => {
     expect(store.isLoading).toBe(false);
     expect(store.isLoadingFor('a')).toBe(false);
     expect(store.isLoadingFor('b')).toBe(false);
+  });
+
+  it('stale endLoading ticket after absolute clear drops a lone default holder', () => {
+    const store = new LoadingStore();
+    const ticket = store.beginLoading('fetch');
+    store.setIsLoading(false);
+    store.setIsLoading(true);
+    expect(store.isLoadingFor(DEFAULT_LOADING_KEY)).toBe(true);
+
+    store.endLoading(ticket);
+
+    expect(store.isLoading).toBe(false);
+    expect(store.isLoadingFor(DEFAULT_LOADING_KEY)).toBe(false);
   });
 });

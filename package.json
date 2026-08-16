@@ -1,6 +1,6 @@
 {
   "name": "mobx-openapi-stores",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A MobX-based store implementation for OpenAPI generated clients",
   "packageManager": "yarn@4.9.2",
   "type": "module",
@@ -38,11 +38,6 @@
     "semantic-release": "semantic-release",
     "commitlint": "commitlint"
   },
-  "dependencies": {
-    "lodash.assign": "^4.2.0",
-    "lodash.find": "^4.6.0",
-    "to-flow-generator-function": "^1.0.0"
-  },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
@@ -53,8 +48,6 @@
     "@semantic-release/gitlab": "^13.2.6",
     "@semantic-release/npm": "^12.0.2",
     "@semantic-release/release-notes-generator": "^14.0.3",
-    "@types/lodash.assign": "^4.2.9",
-    "@types/lodash.find": "^4.6.9",
     "@vitest/coverage-v8": "3.2.4",
     "eslint": "^9.33.0",
     "fallow": "^3.16.0",

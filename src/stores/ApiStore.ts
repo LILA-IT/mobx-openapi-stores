@@ -1,8 +1,8 @@
 import { action, computed, flow, makeObservable, observable } from 'mobx';
-import { toFlowGeneratorFunction } from 'to-flow-generator-function';
 
 import { type ApiConfig, type ApiType } from '../types/ApiType';
 import { callApi } from '../utils/api';
+import { toFlowGeneratorFunction } from '../utils/api/flow';
 import type { ApiMethodArgs, ApiMethodName } from '../utils/api/types/ApiMethod.type';
 import { actionBoundCompat } from '../utils/mobx/actionBoundCompat';
 import { LoadingStore } from './LoadingStore';
@@ -288,9 +288,11 @@ export class ApiStore<
           this.#apiCallGenerations.set(exclusiveKey, generation);
         }
         const resolvedLoadingKey = loadingKey ?? this.getLoadingKey(endpoint, args);
+        const loadingTicket = disableLoading
+          ? null
+          : this.beginLoading(resolvedLoadingKey);
         try {
           if (!this.api) throw new Error(`${this.name} Api is not set`);
-          if (!disableLoading) this.beginLoading(resolvedLoadingKey);
           const result = await callApi<Api, Endpoint, Args>(
             endpoint,
             args,
@@ -305,7 +307,7 @@ export class ApiStore<
           }
           return result;
         } finally {
-          if (!disableLoading) this.endLoading(resolvedLoadingKey);
+          if (loadingTicket) this.endLoading(loadingTicket);
         }
       },
     ),

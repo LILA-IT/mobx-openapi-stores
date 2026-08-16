@@ -1,5 +1,3 @@
-import assign from 'lodash.assign';
-import find from 'lodash.find';
 import { action, computed, makeObservable, observable } from 'mobx';
 
 import { type ArrayElement, type CollectionType, type SingleType } from '../types';
@@ -15,9 +13,9 @@ import { SingleStore } from './SingleStore';
  * `current` selection and API capabilities inherited from `SingleStore`.
  * Provides helpers for adding, updating, and removing items.
  *
- * Collection transforms use native `Array.map` / `Array.filter` and publish via
- * `setCollection` so MobX observers see a replaced array reference. Lodash
- * `assign` / `find` remain for in-place merges and lookups.
+ * Collection transforms use native `Array.map` / `Array.filter` / `Array.find`
+ * and `Object.assign`, publishing via `setCollection` so MobX observers see a
+ * replaced array reference.
  *
  * @extends SingleStore<TApi, TSingle>
  *
@@ -164,7 +162,7 @@ export class CollectionStore<
   /**
    * @method editItem
    * @description Merges an update into every collection item with the same ID
-   * using lodash `assign`, then publishes via native `Array.map` + `setCollection`.
+   * using `Object.assign`, then publishes via native `Array.map` + `setCollection`.
    * @param {TSingle} updatedItem - The item data to merge, including its ID.
    * @param {boolean} [setCurrent=true] - Whether to select the update. A
    * matching current item is always updated.
@@ -178,7 +176,7 @@ export class CollectionStore<
     this.setCollection(
       this._collection.map((itemInCollection) =>
         itemInCollection.id === updatedItem.id
-          ? assign(itemInCollection, updatedItem)
+          ? Object.assign(itemInCollection, updatedItem)
           : itemInCollection,
       ) as TCollection,
     );
@@ -210,7 +208,7 @@ export class CollectionStore<
     id: ArrayElement<TCollection>['id'],
   ): ArrayElement<TCollection> | TSingle | undefined => {
     if (this.current?.id === id) return this.current;
-    return find(this.collection, (item) => item.id === id) as
+    return this.collection.find((item) => item.id === id) as
       | ArrayElement<TCollection>
       | undefined;
   };

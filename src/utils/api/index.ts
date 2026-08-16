@@ -5,3 +5,4 @@ import { handleError } from './handleError';
 
 export type * from './types';
 export { handleError, callApi, toFlowGeneratorFunction, getErrorMessage };
+export type { FlowGenerator } from './flow';

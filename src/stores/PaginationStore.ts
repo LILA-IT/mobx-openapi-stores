@@ -1,10 +1,8 @@
-import assign from 'lodash.assign';
-import find from 'lodash.find';
 import { action, computed, flow, makeObservable, observable } from 'mobx';
-import { toFlowGeneratorFunction } from 'to-flow-generator-function';
 
 import { type ArrayElement, type SingleType } from '../types';
 import { type ApiType } from '../types/ApiType';
+import { toFlowGeneratorFunction } from '../utils/api/flow';
 import type { ApiMethodArgs, ApiMethodName } from '../utils/api/types/ApiMethod.type';
 import { SingleStore } from './SingleStore';
 
@@ -272,11 +270,11 @@ export abstract class PaginationStore<
     id: ArrayElement<TSingle[]>['id'],
   ): TSingle | TPageCollection | undefined => {
     if (this.current?.id === id) return this.current;
-    const itemInCollection = find(this.collection, (item) => item.id === id);
+    const itemInCollection = this.collection.find((item) => item.id === id);
     if (itemInCollection) return itemInCollection;
 
     for (const pageData of this._pagesCache.values()) {
-      const item = find(pageData, (pageItem) => pageItem.id === id);
+      const item = pageData.find((pageItem) => pageItem.id === id);
       if (item) return item;
     }
 
@@ -310,7 +308,7 @@ export abstract class PaginationStore<
     if (setCurrent || this.current?.id === updatedItem.id) {
       this.setCurrent(
         this.current?.id === updatedItem.id
-          ? assign({}, this.current, updatedItem)
+          ? Object.assign({}, this.current, updatedItem)
           : updatedItem,
       );
     }
@@ -539,7 +537,7 @@ export abstract class PaginationStore<
     if (pageNumber === undefined || itemIndex === undefined) return;
 
     const pageData = this._pagesCache.get(pageNumber);
-    if (pageData) pageData[itemIndex] = assign(pageData[itemIndex], item);
+    if (pageData) pageData[itemIndex] = Object.assign(pageData[itemIndex], item);
   }
 
   /**
