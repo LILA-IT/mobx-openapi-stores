@@ -41,8 +41,6 @@
   "dependencies": {
     "lodash.assign": "^4.2.0",
     "lodash.find": "^4.6.0",
-    "lodash.flatmap": "^4.5.0",
-    "lodash.remove": "^4.7.0",
     "to-flow-generator-function": "^1.0.0"
   },
   "devDependencies": {
@@ -57,8 +55,6 @@
     "@semantic-release/release-notes-generator": "^14.0.3",
     "@types/lodash.assign": "^4.2.9",
     "@types/lodash.find": "^4.6.9",
-    "@types/lodash.flatmap": "^4.5.9",
-    "@types/lodash.remove": "^4.7.9",
     "@vitest/coverage-v8": "3.2.4",
     "eslint": "^9.33.0",
     "fallow": "^3.16.0",

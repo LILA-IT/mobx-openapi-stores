@@ -1958,24 +1958,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/lodash.flatmap@npm:^4.5.9":
-  version: 4.5.9
-  resolution: "@types/lodash.flatmap@npm:4.5.9"
-  dependencies:
-    "@types/lodash": "npm:*"
-  checksum: 10c0/a966fcb1f87e6faa1600425d11311c5fcfd4b0e68716f75ea2085bc62f181fbdc10e7c388ff6af19ca9a048c95705742d256955fdcc7c936027d38f1fe12f2e6
-  languageName: node
-  linkType: hard
-
-"@types/lodash.remove@npm:^4.7.9":
-  version: 4.7.9
-  resolution: "@types/lodash.remove@npm:4.7.9"
-  dependencies:
-    "@types/lodash": "npm:*"
-  checksum: 10c0/8100af2e6d5448a2fa3fc3a67ddcdbb31f897f8dc591fb55d3ab17cc669e78bfd4c4a8f3b0767549ab2a3b686872c10874b55c5880b1438ea23c115d07f27592
-  languageName: node
-  linkType: hard
-
 "@types/lodash@npm:*":
   version: 4.17.16
   resolution: "@types/lodash@npm:4.17.16"
@@ -5244,13 +5226,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash.flatmap@npm:^4.5.0":
-  version: 4.5.0
-  resolution: "lodash.flatmap@npm:4.5.0"
-  checksum: 10c0/11627ae4ca8332f7bbc9b0c99948127504a17b19720d85979de0184a6992fe706633acd673ce797197c3fb185318a65ad6590a3beae5428a9c8d5d6391f3db80
-  languageName: node
-  linkType: hard
-
 "lodash.isplainobject@npm:^4.0.6":
   version: 4.0.6
   resolution: "lodash.isplainobject@npm:4.0.6"
@@ -5283,13 +5258,6 @@ __metadata:
   version: 4.6.2
   resolution: "lodash.mergewith@npm:4.6.2"
   checksum: 10c0/4adbed65ff96fd65b0b3861f6899f98304f90fd71e7f1eb36c1270e05d500ee7f5ec44c02ef979b5ddbf75c0a0b9b99c35f0ad58f4011934c4d4e99e5200b3b5
-  languageName: node
-  linkType: hard
-
-"lodash.remove@npm:^4.7.0":
-  version: 4.7.0
-  resolution: "lodash.remove@npm:4.7.0"
-  checksum: 10c0/d649aa8aa00fb062d8744516afe2e85297e24355b45f3f40b0f7f15e42495969afeeecac01054229d3ab60d4c196eb40fb88c168feb0bb25fd40bd72e7b1d08e
   languageName: node
   linkType: hard
 
@@ -5677,8 +5645,6 @@ __metadata:
     "@semantic-release/release-notes-generator": "npm:^14.0.3"
     "@types/lodash.assign": "npm:^4.2.9"
     "@types/lodash.find": "npm:^4.6.9"
-    "@types/lodash.flatmap": "npm:^4.5.9"
-    "@types/lodash.remove": "npm:^4.7.9"
     "@vitest/coverage-v8": "npm:3.2.4"
     eslint: "npm:^9.33.0"
     fallow: "npm:^3.16.0"
@@ -5686,8 +5652,6 @@ __metadata:
     lefthook: "npm:^1.12.3"
     lodash.assign: "npm:^4.2.0"
     lodash.find: "npm:^4.6.0"
-    lodash.flatmap: "npm:^4.5.0"
-    lodash.remove: "npm:^4.7.0"
     mobx: "npm:^6.13.7"
     prettier: "npm:^3.6.2"
     semantic-release: "npm:^24.2.7"

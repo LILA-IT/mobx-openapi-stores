@@ -184,6 +184,17 @@ describe('ObjectStore', () => {
     expect(store.getEntryIdByItemId(99)).toBeUndefined();
   });
 
+  it('finds items even when an earlier entry is not an array', () => {
+    // Runtime can hold mixed shapes despite the collection-typed API.
+    store.setEntry('solo', { id: 1, name: 'Solo' } as unknown as Item[]);
+    store.setEntry('group-b', [{ id: 2, name: 'Beta' }]);
+
+    expect(store.getEntryIdByItemId(2)).toBe('group-b');
+    expect(store.getItemById(2)).toEqual({ id: 2, name: 'Beta' });
+    expect(store.getEntryIdByItemId(1)).toBeUndefined();
+    expect(store.getItemById(1)).toBeUndefined();
+  });
+
   it('returns a stringified key from getEntryIdByItemId when the entry was set with a numeric key', () => {
     store.setEntry(10, [{ id: 5, name: 'Five' }]);
 

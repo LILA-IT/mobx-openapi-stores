@@ -1,8 +1,8 @@
 /**
- * ObjectStore mutation/lookup benches for the current lodash-backed paths.
+ * ObjectStore mutation/lookup benches after native Array cutover.
  *
- * Baseline before replacing `lodash.flatmap` / `lodash.remove` (and later
- * `lodash.find`) with native equivalents. Fixture: 20 groups × 50 items.
+ * Compare against the lodash baseline from `chore/objectstore-lodash-bench-baseline`
+ * (20 groups × 50 items).
  */
 import { bench, describe } from 'vitest';
 
@@ -26,8 +26,8 @@ function createFilledStore(): ObjectStore<ApiType, string, Item> {
   return store;
 }
 
-describe('ObjectStore mutation (lodash flatMap/remove/find)', () => {
-  bench('getItemById (flatMap + find) x1000 items', () => {
+describe('ObjectStore mutation (native flatMap/filter/find)', () => {
+  bench('getItemById (native flatMap + find) x1000 items', () => {
     const store = createFilledStore();
     store.getItemById(500);
   });
@@ -42,7 +42,7 @@ describe('ObjectStore mutation (lodash flatMap/remove/find)', () => {
     store.editItem(500, { id: 500, name: 'patched' });
   });
 
-  bench('removeItem (lodash.remove + setEntry) x1000 items', () => {
+  bench('removeItem (native filter + setEntry) x1000 items', () => {
     const store = createFilledStore();
     store.removeItem(500);
   });

@@ -8,15 +8,17 @@ import {
   observable,
   remove,
   set,
-  values,
 } from 'mobx';
 
-import { type ApiConfig, type ApiType } from '../types/ApiType';
-import { SingleStore } from './SingleStore';
-import find from 'lodash.find';
-import flatMap from 'lodash.flatmap';
-import _remove from 'lodash.remove';
 import { type ObjectType, type SingleType } from '../types';
+import { type ApiConfig, type ApiType } from '../types/ApiType';
+import {
+  findCollectionEntryIdByItemId,
+  findItemInCollectionEntries,
+  getCollectionEntryOrWarn,
+  type ObjectEntryPair,
+} from './helpers/objectStoreCollection';
+import { SingleStore } from './SingleStore';
 
 /**
  * @class ObjectStore
@@ -213,17 +215,8 @@ export class ObjectStore<
    * @returns {keyof TObject | undefined} The key of the entry containing the item, or undefined if not found.
    */
   getEntryIdByItemId(itemId: TTarget['id']): keyof TObject | undefined {
-    const e = entries(this._object);
-    // Ensure entries are arrays before trying to use .some()
-    if (e.length > 0 && Array.isArray(e[0][1])) {
-      const foundEntry = e.find(([, /*entryKey*/ entryValue]) =>
-        entryValue.some((item) => item.id === itemId),
-      );
-      if (foundEntry) {
-        return foundEntry[0] as keyof TObject;
-      }
-    }
-    return undefined;
+    const entryId = findCollectionEntryIdByItemId(this.#collectionEntryPairs(), itemId);
+    return entryId as keyof TObject | undefined;
   }
 
   /**
@@ -234,11 +227,7 @@ export class ObjectStore<
    * @returns {TTarget | undefined} The found item, or undefined if not found.
    */
   getItemById(itemId: TTarget['id']): TTarget | undefined {
-    // flatMap will iterate over single items if TType is 'single' or items in arrays if 'collection'
-    return find(
-      flatMap(values(this._object), (entry) => entry),
-      (item) => item.id === itemId,
-    );
+    return findItemInCollectionEntries<TTarget>(this.#collectionEntryPairs(), itemId);
   }
 
   /**
@@ -252,21 +241,15 @@ export class ObjectStore<
    * @action
    */
   addItem(entryId: TKey, item: TTarget): void {
-    const items = this.getEntryById(entryId);
-    if (Array.isArray(items)) {
-      items.push(item);
-      // `setEntry` might not be strictly necessary if `items` is the observable array itself and MobX tracks its mutation.
-      // However, calling setEntry ensures MobX is aware of a change to the object property if `items` was a copy.
-      // For direct mutation of observable array, this.setEntry(entryId, items); might be redundant if `items` IS the observable array.
-      // To be safe and explicit, especially if getEntryById could return a non-observable copy:
-      this.setEntry(entryId, items);
-    } else {
-      // Handle case where entry is not an array (e.g., if TType can be mixed or entry not initialized as array)
-      console.warn(
-        `[${this.name}] Cannot add item. Entry for id '${String(entryId)}' is not an array.`,
-      );
-      // Or, initialize if desired: this.setEntry(entryId, [item] as unknown as TObject[TKey]);
-    }
+    const items = getCollectionEntryOrWarn({
+      storeName: this.name,
+      entryId: String(entryId),
+      entry: this.getEntryById(entryId),
+      action: 'add item',
+    }) as TTarget[] | undefined;
+    if (!items) return;
+    items.push(item);
+    this.setEntry(entryId, items as unknown as TObject[TKey]);
   }
 
   /**
@@ -280,18 +263,17 @@ export class ObjectStore<
   editItem(itemId: TTarget['id'], itemUpdateData: TTarget): void {
     const entryId = this.getEntryIdByItemId(itemId);
     if (!entryId) return;
-    const entry = this.getEntryById(entryId);
-    if (!Array.isArray(entry)) {
-      console.warn(
-        `[${this.name}] Cannot edit item. Entry for id '${String(entryId)}' is not an array.`,
-      );
-      return;
-    }
+    const entry = getCollectionEntryOrWarn({
+      storeName: this.name,
+      entryId: String(entryId),
+      entry: this.getEntryById(entryId),
+      action: 'edit item',
+    }) as TTarget[] | undefined;
+    if (!entry) return;
     const itemIndex = entry.findIndex((item) => item.id === itemId);
-    if (itemIndex !== -1) {
-      entry[itemIndex] = itemUpdateData;
-      this.setEntry(entryId, entry);
-    }
+    if (itemIndex === -1) return;
+    entry[itemIndex] = itemUpdateData;
+    this.setEntry(entryId as TKey, entry as unknown as TObject[TKey]);
   }
 
   /**
@@ -307,18 +289,20 @@ export class ObjectStore<
   removeItem(itemId: TTarget['id'], entryId?: keyof TObject): void {
     const resolvedEntryId = entryId ?? this.getEntryIdByItemId(itemId);
     if (!resolvedEntryId) return;
-    const entry = this.getEntryById(resolvedEntryId);
-    if (!Array.isArray(entry)) {
-      console.warn(
-        `[${this.name}] Cannot remove item. Entry for id '${String(resolvedEntryId)}' is not an array.`,
-      );
-      return;
-    }
+    const entry = getCollectionEntryOrWarn({
+      storeName: this.name,
+      entryId: String(resolvedEntryId),
+      entry: this.getEntryById(resolvedEntryId),
+      action: 'remove item',
+    }) as TTarget[] | undefined;
+    if (!entry) return;
     const initialLength = entry.length;
-    _remove(entry, (item) => item.id === itemId);
-    if (entry.length < initialLength) {
-      // Check if an item was actually removed
-      this.setEntry(resolvedEntryId, entry);
-    }
+    const next = entry.filter((item) => item.id !== itemId);
+    if (next.length < initialLength)
+      this.setEntry(resolvedEntryId as TKey, next as unknown as TObject[TKey]);
+  }
+
+  #collectionEntryPairs(): ObjectEntryPair[] {
+    return entries(this._object) as ObjectEntryPair[];
   }
 }
