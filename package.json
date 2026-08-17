@@ -35,6 +35,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest --run --coverage",
     "test:bench": "vitest bench --run",
+    "size:check": "bash scripts/check-size-budget.sh",
     "format": "prettier --write .",
     "semantic-release": "semantic-release",
     "commitlint": "commitlint"
