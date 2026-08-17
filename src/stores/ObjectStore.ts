@@ -95,7 +95,7 @@ export class ObjectStore<
   TApi extends ApiType,
   TKey extends SingleType['id'],
   TTarget extends SingleType = SingleType,
-  TType extends 'collection' = 'collection',
+  TType extends 'single' | 'collection' = 'collection',
   TObject extends ObjectType<TKey, TTarget, TType> = ObjectType<TKey, TTarget, TType>,
 > extends SingleStore<TApi, TTarget> {
   /**
