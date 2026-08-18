@@ -2,7 +2,6 @@ import { flow } from 'mobx';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type ApiType } from '../../types/ApiType';
-import { toFlowGeneratorFunction } from '../../utils/api/flow';
 import {
   type FetchPageParams,
   type MultiPageResponse,
@@ -25,16 +24,18 @@ class TestPaginationStore extends PaginationStore<ApiType, Item> {
       ) => Promise<MultiPageResponse<Item> | undefined>
     >();
 
-  _fetchPagesApi = flow(
-    toFlowGeneratorFunction(
-      async (
-        pages: number[],
-        params: FetchPageParams,
-        options?: { disableLoading?: boolean },
-      ): Promise<MultiPageResponse<Item> | undefined> =>
-        await this.fetchPagesApiMock(pages, params, options),
-    ),
-  );
+  _fetchPagesApi = flow(function* (
+    this: TestPaginationStore,
+    pages: number[],
+    params: FetchPageParams,
+    options?: { disableLoading?: boolean },
+  ): Generator<
+    Promise<MultiPageResponse<Item> | undefined>,
+    MultiPageResponse<Item> | undefined,
+    MultiPageResponse<Item> | undefined
+  > {
+    return yield this.fetchPagesApiMock(pages, params, options);
+  });
 }
 
 function createResponse(

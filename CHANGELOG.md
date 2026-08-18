@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/LILA-IT/mobx-openapi-stores/compare/v1.0.2...v1.0.3) (2026-08-18)
+
+
+### Bug Fixes
+
+* **ci:** harden openapi generator fixture job ([ff56a66](https://github.com/LILA-IT/mobx-openapi-stores/commit/ff56a665e695c61f437087dd2d865d6fe673489c))
+
 ## [1.0.2](https://github.com/LILA-IT/mobx-openapi-stores/compare/v1.0.1...v1.0.2) (2026-08-16)
 
 ### Bug Fixes

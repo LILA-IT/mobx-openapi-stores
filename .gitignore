@@ -6,6 +6,9 @@ coverage
 .DS_Store
 .yarn/install-state.gz
 
+# OpenAPI generator CI output (regenerated each job)
+fixtures/openapi/.generated/
+
 # Do not mirror GitLab-duplicate CI as GitHub Actions.
 # Exception: .github/workflows/publish.yml is intentional (npm trusted publishing).
 .github/workflows/*

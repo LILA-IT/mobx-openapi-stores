@@ -6,11 +6,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LIB="${ROOT}/lib"
 
-# ~30% headroom over current (≈53 KB JS / ≈67 KB DTS) to catch regressions
+# Moderate headroom over current (≈53 KB JS / ≈54 KB DTS) catches regressions
 # without blocking small legitimate growth.
 MAX_JS_BYTES="${SIZE_BUDGET_JS_BYTES:-70000}"
 MAX_MJS_BYTES="${SIZE_BUDGET_MJS_BYTES:-70000}"
-MAX_DTS_BYTES="${SIZE_BUDGET_DTS_BYTES:-90000}"
+MAX_DTS_BYTES="${SIZE_BUDGET_DTS_BYTES:-65000}"
 
 fail=0
 

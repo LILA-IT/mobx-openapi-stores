@@ -14,25 +14,8 @@ export type LoadingTicket = {
 };
 
 /**
- * @class LoadingStore
- * @description Base class for managing loading state with per-key reference counts.
- * {@link isLoading} is true while any key has a count greater than zero.
- * {@link isLoadingFor} reports a single key.
- *
- * Prefer {@link beginLoading} / {@link endLoading} for nested or overlapping
- * async work (e.g. `apiCall`). {@link setIsLoading} remains for absolute
- * updates: `true` ensures at least one holder on the default key; `false`
- * clears all keys and bumps an epoch so in-flight `endLoading` tickets no-op.
- *
- * If `setIsLoading(true)` runs after an absolute clear while older calls are
- * still finishing, those stale ends clear a lone default-key holder so
- * `isLoading` does not stick true.
- *
- * @property {boolean} isLoading - Whether any loading holder is active.
- * @method isLoadingFor - Whether a specific key has an active holder.
- * @method beginLoading - Increments the loading count for a key; returns a ticket.
- * @method endLoading - Decrements via ticket (preferred) or key string.
- * @method setIsLoading - Absolute set: `true` ensures loading; `false` clears all.
+ * Tracks loading with per-key reference counts.
+ * Prefer balanced {@link beginLoading} and {@link endLoading} calls for overlapping work.
  */
 export class LoadingStore {
   /**

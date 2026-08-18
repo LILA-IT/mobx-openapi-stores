@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "fixtures/openapi/typecheck/**/*.ts",
+    "fixtures/openapi/.generated/**/*.ts"
+  ],
+  "exclude": ["node_modules", "lib", "coverage", "fixtures/openapi/.generated/docs"]
+}

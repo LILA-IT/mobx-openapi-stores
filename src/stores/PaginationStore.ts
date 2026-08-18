@@ -2,7 +2,6 @@ import { action, computed, flow, makeObservable, observable } from 'mobx';
 
 import { type ArrayElement, type SingleType } from '../types';
 import { type ApiType } from '../types/ApiType';
-import { toFlowGeneratorFunction } from '../utils/api/flow';
 import type { ApiMethodArgs, ApiMethodName } from '../utils/api/types/ApiMethod.type';
 import { SingleStore } from './SingleStore';
 
@@ -14,10 +13,12 @@ type PaginationStateInternal = {
   sort: string;
 };
 
+/** Public pagination state, including the current `page` alias. */
 export type PaginationState = PaginationStateInternal & {
   page: number;
 };
 
+/** Metadata returned for one page. */
 export type PaginationInner = {
   currentPage: number;
   total: number;
@@ -26,11 +27,13 @@ export type PaginationInner = {
   sort: string;
 };
 
+/** One page payload and its pagination metadata. */
 export type PaginatedPage<T> = {
   data: T[];
   pagination: PaginationInner;
 };
 
+/** Aggregate metadata for a multi-page response. */
 export type PaginationOuter = {
   total: number;
   totalPages: number;
@@ -38,66 +41,33 @@ export type PaginationOuter = {
   sort: string;
 };
 
+/** Fetched pages and their aggregate pagination metadata. */
 export type MultiPageResponse<T> = {
   pages: PaginatedPage<T>[];
   pagination: PaginationOuter;
 };
 
+/** Persistent page size, sorting, and query parameters. */
 export type FetchPageParams = {
   pageSize: number;
   sort: string;
   [key: string]: unknown;
 };
 
+/** Cache and loading controls for `fetchPage`. */
 export type FetchPageOptions = {
   useCache?: boolean;
   disableLoading?: boolean;
 };
 
+/** Loading controls passed to a paginated API adapter. */
 export type FetchPagesApiOptions = {
   disableLoading?: boolean;
 };
 
 /**
- * @class PaginationStore
- * @abstract
- * @template TApi - The generated API client type inherited from `SingleStore`.
- * @template TSingle - The complete entity type used for current-item operations.
- * @template TPageCollection - The possibly partial entity type cached in pages.
- * @description Manages paginated API resources in an observable page cache.
- * It exposes the active page as `collection`, tracks pagination and query state,
- * supports adjacent-page prefetching, and keeps cached entities synchronized
- * after create, update, and delete operations.
- *
- * Subclasses provide `_fetchPagesApi` and may override query and mutation hooks
- * to match their API.
- *
- * @extends SingleStore<TApi, TSingle>
- *
- * @property {TPageCollection[]} collection - The active page's cached items.
- * @property {PaginationState} paginationState - Current public pagination state.
- * @property {Map<number, TPageCollection[]>} pagesCache - Cached pages by number.
- *
- * @method fetchPage - Loads a page and optionally uses the cache.
- * @method getById - Finds an item in current state or any cached page.
- * @method addItem - Handles a newly created entity.
- * @method editItem - Handles an updated entity.
- * @method removeItem - Handles a deleted entity.
- * @method setItem - Updates an entity in the cache.
- * @method resetListViewToFirstPage - Clears cached pages and selects page one.
- *
- * @example
- * class ProductPaginationStore extends PaginationStore<ProductApi, Product> {
- *   protected _fetchPagesApi(pages, params, options) {
- *     return this.api.products.listPages({ pages, ...params }, options);
- *   }
- * }
- *
- * const store = new ProductPaginationStore('Products', {
- *   pageSize: 25,
- *   prefetchCount: 1,
- * });
- * await store.fetchPage(1);
+ * Manages a page cache, current-page projection, and adjacent prefetching.
+ * Subclasses supply the paginated request through `_fetchPagesApi`.
  */
 export abstract class PaginationStore<
   TApi extends ApiType,
@@ -353,58 +323,55 @@ export abstract class PaginationStore<
    * page, or `undefined` when the API returns no response.
    * @action
    */
-  fetchPage = flow(
-    toFlowGeneratorFunction(
-      async (
-        page: number = 1,
-        params?: Partial<FetchPageParams>,
-        { useCache = false, disableLoading = false }: FetchPageOptions = {},
-      ): Promise<PaginatedPage<TPageCollection> | undefined> => {
-        const pageSize = params?.pageSize ?? this._paginationState.pageSize;
-        const sort = params?.sort ?? this._paginationState.sort;
-        const fetchParams = {
-          ...this._getQueryParams(),
-          ...params,
-          pageSize,
-          sort,
-        };
-        const cachedPage = this._pagesCache.get(page);
-        const isCacheHit = useCache && cachedPage && this._paramsMatchCache(fetchParams);
+  fetchPage = flow(function* (
+    this: PaginationStore<TApi, TSingle, TPageCollection>,
+    page: number = 1,
+    params?: Partial<FetchPageParams>,
+    { useCache = false, disableLoading = false }: FetchPageOptions = {},
+  ) {
+    const pageSize = params?.pageSize ?? this._paginationState.pageSize;
+    const sort = params?.sort ?? this._paginationState.sort;
+    const fetchParams = {
+      ...this._getQueryParams(),
+      ...params,
+      pageSize,
+      sort,
+    };
+    const cachedPage = this._pagesCache.get(page);
+    const isCacheHit = useCache && cachedPage && this._paramsMatchCache(fetchParams);
 
-        if (isCacheHit) {
-          this._paginationState.currentPage = page;
-          void this._prefetchAdjacentPages(page, fetchParams);
-          return {
-            data: cachedPage,
-            pagination: { ...this._paginationState, currentPage: page },
-          };
-        }
+    if (isCacheHit) {
+      this._paginationState.currentPage = page;
+      void this._prefetchAdjacentPages(page, fetchParams);
+      return {
+        data: cachedPage,
+        pagination: { ...this._paginationState, currentPage: page },
+      };
+    }
 
-        if (!this._paramsMatchCache(fetchParams)) this._invalidateCache();
+    if (!this._paramsMatchCache(fetchParams)) this._invalidateCache();
 
-        const response = await this._fetchPagesApi([page], fetchParams, {
-          disableLoading,
-        });
-        void this._prefetchAdjacentPages(page, fetchParams);
-        if (!response) return undefined;
+    const response = (yield this._fetchPagesApi([page], fetchParams, {
+      disableLoading,
+    })) as unknown as MultiPageResponse<TPageCollection> | undefined;
+    void this._prefetchAdjacentPages(page, fetchParams);
+    if (!response) return undefined;
 
-        this._setPagesFromResponse(response);
-        this._setQueryParams(fetchParams);
-        this._setPaginationState({
-          currentPage: page,
-          pageSize,
-          sort,
-          total: response.pagination.total,
-          totalPages: response.pagination.totalPages,
-        });
+    this._setPagesFromResponse(response);
+    this._setQueryParams(fetchParams);
+    this._setPaginationState({
+      currentPage: page,
+      pageSize,
+      sort,
+      total: response.pagination.total,
+      totalPages: response.pagination.totalPages,
+    });
 
-        return {
-          data: this._pagesCache.get(page) ?? [],
-          pagination: { ...this._paginationState, currentPage: page },
-        };
-      },
-    ),
-  );
+    return {
+      data: this._pagesCache.get(page) ?? [],
+      pagination: { ...this._paginationState, currentPage: page },
+    };
+  });
 
   /**
    * @protected
@@ -415,21 +382,21 @@ export abstract class PaginationStore<
    * @returns {Promise<void>}
    * @action
    */
-  _prefetchAdjacentPages = flow(
-    toFlowGeneratorFunction(
-      async (page: number, fetchParams: FetchPageParams): Promise<void> => {
-        const pagesToPrefetch = this._getPagesToFetch(page).filter(
-          (pageToFetch) => pageToFetch !== page && !this._pagesCache.has(pageToFetch),
-        );
-        if (pagesToPrefetch.length === 0) return;
+  _prefetchAdjacentPages = flow(function* (
+    this: PaginationStore<TApi, TSingle, TPageCollection>,
+    page: number,
+    fetchParams: FetchPageParams,
+  ) {
+    const pagesToPrefetch = this._getPagesToFetch(page).filter(
+      (pageToFetch) => pageToFetch !== page && !this._pagesCache.has(pageToFetch),
+    );
+    if (pagesToPrefetch.length === 0) return;
 
-        const response = await this._fetchPagesApi(pagesToPrefetch, fetchParams, {
-          disableLoading: true,
-        });
-        if (response) this._setPagesFromResponse(response);
-      },
-    ),
-  );
+    const response = (yield this._fetchPagesApi(pagesToPrefetch, fetchParams, {
+      disableLoading: true,
+    })) as unknown as MultiPageResponse<TPageCollection> | undefined;
+    if (response) this._setPagesFromResponse(response);
+  });
 
   /**
    * @protected
@@ -441,16 +408,17 @@ export abstract class PaginationStore<
    * @param {FetchPagesApiOptions} [_options] - Loading behavior.
    * @returns {Promise<MultiPageResponse<TPageCollection> | undefined>} Page data.
    */
-  _fetchPagesApi = flow(
-    toFlowGeneratorFunction(
-      (
-        _pages: number[],
-        _params: FetchPageParams,
-        _options?: FetchPagesApiOptions,
-      ): Promise<MultiPageResponse<TPageCollection> | undefined> =>
-        Promise.reject(new Error('Not implemented')),
-    ),
-  );
+  _fetchPagesApi = flow(function* (
+    _pages: number[],
+    _params: FetchPageParams,
+    _options?: FetchPagesApiOptions,
+  ): Generator<
+    Promise<MultiPageResponse<TPageCollection> | undefined>,
+    MultiPageResponse<TPageCollection> | undefined,
+    MultiPageResponse<TPageCollection> | undefined
+  > {
+    return yield Promise.reject(new Error('Not implemented'));
+  });
 
   /**
    * @protected
@@ -649,31 +617,31 @@ export abstract class PaginationStore<
    * fetched entity.
    * @action
    */
-  _fetch = flow(
-    toFlowGeneratorFunction(
-      async <Endpoint extends ApiMethodName<TApi>>(
-        endpoint: Endpoint,
-        args: ApiMethodArgs<TApi, Endpoint> & { id: TSingle['id'] },
-        { useCache = false, disableLoading }: FetchPageOptions = {},
-      ) => {
-        let item: TSingle | TPageCollection | undefined;
-        if (useCache) item = await Promise.resolve(this.getById(args.id));
-        if (useCache && item) return item;
+  _fetch = flow(function* <Endpoint extends ApiMethodName<TApi>>(
+    this: PaginationStore<TApi, TSingle, TPageCollection>,
+    endpoint: Endpoint,
+    args: ApiMethodArgs<TApi, Endpoint> & { id: TSingle['id'] },
+    { useCache = false, disableLoading }: FetchPageOptions = {},
+  ) {
+    let item: TSingle | TPageCollection | undefined;
+    if (useCache) {
+      const cachedItem: unknown = yield Promise.resolve(this.getById(args.id));
+      item = cachedItem as TSingle | TPageCollection | undefined;
+    }
+    if (useCache && item) return item;
 
-        const result = (await this.apiCall(endpoint as never, args as never, {
-          disableLoading,
-          exclusiveKey: `fetch:${String(args.id)}`,
-          apply: (payload) => {
-            if (!payload) return;
-            this.setItem(payload as TSingle);
-          },
-        })) as unknown as TSingle | undefined;
-
-        // Prefer store state so a superseded exclusive fetch does not return stale payload.
-        return this.getById(args.id) ?? result;
+    const result = (yield this.apiCall(endpoint as never, args as never, {
+      disableLoading,
+      exclusiveKey: `fetch:${String(args.id)}`,
+      apply: (payload) => {
+        if (!payload) return;
+        this.setItem(payload as TSingle);
       },
-    ),
-  );
+    })) as unknown as TSingle | undefined;
+
+    // Prefer store state so a superseded exclusive fetch does not return stale payload.
+    return this.getById(args.id) ?? result;
+  });
 
   /**
    * @protected
@@ -687,19 +655,17 @@ export abstract class PaginationStore<
    * @returns {Promise<unknown>} The API result.
    * @action
    */
-  __apiCall = flow(
-    toFlowGeneratorFunction(
-      async <
-        Endpoint extends ApiMethodName<TApi>,
-        Args extends ApiMethodArgs<TApi, Endpoint>,
-      >(
-        apiCall: Endpoint,
-        args: Args extends undefined ? never : Args,
-        { disableLoading = false }: FetchPagesApiOptions = {},
-      ) =>
-        await this.apiCall<TApi, Endpoint, Args>(apiCall, args, {
-          disableLoading,
-        }),
-    ),
-  );
+  __apiCall = flow(function* <
+    Endpoint extends ApiMethodName<TApi>,
+    Args extends ApiMethodArgs<TApi, Endpoint>,
+  >(
+    this: PaginationStore<TApi, TSingle, TPageCollection>,
+    apiCall: Endpoint,
+    args: Args extends undefined ? never : Args,
+    { disableLoading = false }: FetchPagesApiOptions = {},
+  ) {
+    return (yield this.apiCall<TApi, Endpoint, Args>(apiCall, args, {
+      disableLoading,
+    })) as unknown;
+  });
 }

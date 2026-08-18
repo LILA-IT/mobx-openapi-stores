@@ -10,6 +10,7 @@ export default defineConfig(
       'lib/', // Assuming 'lib' is your distribution/build output for the package
       'dist/', // Common alternative for distribution/build output
       'coverage/', // Coverage reports
+      'fixtures/openapi/.generated/',
       // 'eslint.config.js', // In case you had a .js version before
     ],
   },

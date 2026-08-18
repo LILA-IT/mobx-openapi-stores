@@ -2,140 +2,21 @@ import { flow, makeObservable } from 'mobx';
 
 import { type ArrayElement, type CollectionType, type SingleType } from '../types';
 import { type ApiConfig, type ApiType } from '../types/ApiType';
-import { toFlowGeneratorFunction } from '../utils/api/flow';
 import type { ApiMethodArgs, ApiMethodName } from '../utils/api/types/ApiMethod.type';
 import { CollectionStore } from './CollectionStore';
 
-/**
- * @typedef CrudFetchOptions
- * @description Options for fetch operations in `CrudCollectionStore`.
- * @property {boolean} [useCache=false] - If true, attempts to retrieve data from the local store cache first.
- */
+/** Options for cache-aware CRUD reads. */
 export type CrudFetchOptions = {
   useCache?: boolean;
 };
 
-// TODO: Add CrudConfig type
-/**
- * @typedef CrudConfig
- * @description Configuration for `CrudCollectionStore`.
- * @property {string} [createEndpoint] - The API endpoint for creating an item.
- * @property {string} [fetchAllEndpoint] - The API endpoint for fetching all items.
- * @property {string} [fetchOneEndpoint] - The API endpoint for fetching a single item by ID.
- * @property {string} [updateEndpoint] - The API endpoint for updating an item.
- * @property {string} [deleteEndpoint] - The API endpoint for deleting an item.
- */
-// export type CrudConfig<TApi extends ApiType> = {
-//   createEndpoint?: keyof TApi & string;
-//   fetchAllEndpoint?: keyof TApi & string;
-//   fetchByIdEndpoint?: keyof TApi & string;
-//   updateEndpoint?: keyof TApi & string;
-//   deleteEndpoint?: keyof TApi & string;
-// };
-/**
- * @class CrudCollectionStore
- * @template TApi - The type of the generated API client.
- * @template TSingle - The type of individual entities in the collection, must conform to `SingleType`.
- * @template TCollection - The type of the collection, defaults to `TSingle[]`.
- * @description Extends `CollectionStore` to provide protected, MobX flow-wrapped helper methods
- * for common CRUD (Create, Read, Update, Delete) operations. These methods (`_fetch`, `_fetchAll`,
- * `_create`, `_update`, `_delete`) are designed to be called by public-facing methods in concrete
- * subclasses, simplifying the implementation of standard data management tasks.
- *
- * Users of this package will typically extend `CrudCollectionStore` to create specific data stores
- * for their application entities, implementing public methods that call these protected helpers.
- *
- * @extends CollectionStore<TApi, TSingle, TCollection>
- *
- * @protected @method _fetch - Fetches a single item by its ID using a specified API endpoint and updates the store.
- * @protected @method _fetchAll - Fetches all items using a specified API endpoint and updates the store's collection.
- * @protected @method _create - Creates a new item using a specified API endpoint and adds it to the store's collection.
- * @protected @method _update - Updates an existing item using a specified API endpoint and reflects changes in the store.
- * @protected @method _delete - Deletes an item by its ID using a specified API endpoint and removes it from the store.
- *
- * @example
- * // Using createApi function (new approach)
- * const taskStore = new CrudCollectionStore<TaskApi, Task>({
- *   name: 'TaskStore',
- *   createApi: (config) => new TaskApi(config)
- * });
- *
- * @example
- * // Extending with custom CRUD methods (recommended approach)
- * class TaskStore extends CrudCollectionStore<TaskApi, Task> {
- *   constructor(name?: string) {
- *     super(name || 'TaskStore');
- *     makeObservable(this, {
- *       fetchAllTasks: flow,
- *       fetchTaskById: flow,
- *       createNewTask: flow,
- *       updateExistingTask: flow,
- *       deleteTaskById: flow,
- *       initApi: override, // If implementing custom initApi
- *     });
- *   }
- *
- *   // Example: Implement initApi from ApiStore
- *   initApi(config: TaskApiConfig) {
- *     this.setApi(new TaskApi(config));
- *   }
- *
- *   fetchAllTasks = flow(async (options?: CrudFetchOptions) => {
- *     // 'taskControllerFindAll' is a placeholder for your actual API endpoint key in TaskApi
- *     return await this._fetchAll('taskControllerFindAll', {}, options);
- *   });
- *
- *   fetchTaskById = flow(async (id: Task['id'], options?: CrudFetchOptions) => {
- *     return await this._fetch('taskControllerFindOne', { id }, options);
- *   });
- *
- *   createNewTask = flow(async (taskData: CreateTaskDto) => {
- *     return await this._create('taskControllerCreate', { createTaskDto: taskData });
- *   });
- *
- *   updateExistingTask = flow(async (id: Task['id'], taskData: UpdateTaskDto) => {
- *     return await this._update('taskControllerUpdate', { id, updateTaskDto: taskData });
- *   });
- *
- *   deleteTaskById = flow(async (id: Task['id']) => {
- *     return await this._delete('taskControllerRemove', { id });
- *   });
- * }
- *
- * @example
- * // Backwards compatible usage
- * class LegacyTaskStore extends CrudCollectionStore<TaskApi, Task> {
- *   constructor() {
- *     super('LegacyTaskStore'); // Old signature still works
- *   }
- * }
- */
-
+/** Provides protected, flow-wrapped CRUD helpers for concrete collection stores. */
 export class CrudCollectionStore<
   TApi extends ApiType,
   TSingle extends SingleType,
   TCollection extends CollectionType<TSingle> = TSingle[],
 > extends CollectionStore<TApi, TSingle, TCollection> {
-  // _crudConfig: CrudConfig = {};
-
-  /**
-   * @constructor
-   * @description Creates a new CrudCollectionStore instance. Supports both legacy and new constructor signatures for backwards compatibility.
-   * @param {string | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi }} [nameOrOptions]
-   *        - Legacy: A string representing the store name
-   *        - New: An options object with optional name and createApi function
-   *
-   * @example
-   * // Legacy signature (backwards compatible)
-   * const store1 = new CrudCollectionStore('MyStore');
-   *
-   * @example
-   * // New signature with createApi function
-   * const store2 = new CrudCollectionStore({
-   *   name: 'MyStore',
-   *   createApi: (config) => new MyApi(config)
-   * });
-   */
+  /** Creates a CRUD store from a name or API factory options. */
   constructor(
     nameOrOptions?:
       string | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi },
@@ -163,44 +44,43 @@ export class CrudCollectionStore<
    * @returns {Promise<TSingle | ArrayElement<TCollection> | undefined>} A promise resolving to the fetched item, or undefined if not found/error.
    * @flow
    */
-  _fetch = flow(
-    toFlowGeneratorFunction(
-      async <
-        Endpoint extends ApiMethodName<TApi>,
-        Args extends ApiMethodArgs<TApi, Endpoint>,
-      >(
-        endpoint: Endpoint,
-        args: Args extends undefined
-          ? never
-          : Args & {
-              id: ArrayElement<TCollection>['id'];
-            },
-        {
-          useCache = false,
-          setCurrent = true,
-        }: CrudFetchOptions & {
-          setCurrent?: boolean;
-        } = {},
-      ) => {
-        let item: TSingle | ArrayElement<TCollection> | undefined;
-        if (useCache)
-          item = await new Promise((resolve) => resolve(this.getById(args.id)));
-        if (!useCache || !item) {
-          const result = (await this.apiCall(endpoint as never, args as never, {
-            exclusiveKey: `fetch:${String(args.id)}`,
-            apply: (payload) => {
-              if (!payload) return;
-              this.setItem(payload as TSingle, setCurrent);
-            },
-          })) as unknown as TSingle | undefined;
-          // Prefer store state so a superseded exclusive fetch does not return stale payload.
-          item = this.getById(args.id) ?? result;
-          if (!item) return;
-        }
-        return item;
-      },
-    ),
-  );
+  _fetch = flow(function* <
+    Endpoint extends ApiMethodName<TApi>,
+    Args extends ApiMethodArgs<TApi, Endpoint>,
+  >(
+    this: CrudCollectionStore<TApi, TSingle, TCollection>,
+    endpoint: Endpoint,
+    args: Args extends undefined
+      ? never
+      : Args & {
+          id: ArrayElement<TCollection>['id'];
+        },
+    {
+      useCache = false,
+      setCurrent = true,
+    }: CrudFetchOptions & {
+      setCurrent?: boolean;
+    } = {},
+  ) {
+    let item: TSingle | ArrayElement<TCollection> | undefined;
+    if (useCache) {
+      const cachedItem: unknown = yield Promise.resolve(this.getById(args.id));
+      item = cachedItem as TSingle | ArrayElement<TCollection> | undefined;
+    }
+    if (!useCache || !item) {
+      const result = (yield this.apiCall(endpoint as never, args as never, {
+        exclusiveKey: `fetch:${String(args.id)}`,
+        apply: (payload) => {
+          if (!payload) return;
+          this.setItem(payload as TSingle, setCurrent);
+        },
+      })) as unknown as TSingle | undefined;
+      // Prefer store state so a superseded exclusive fetch does not return stale payload.
+      item = this.getById(args.id) ?? result;
+      if (!item) return;
+    }
+    return item;
+  });
 
   /**
    * @protected
@@ -215,39 +95,35 @@ export class CrudCollectionStore<
    * @returns {Promise<TCollection | undefined>} A promise resolving to the fetched collection, or undefined if error.
    * @flow
    */
-  _fetchAll = flow(
-    toFlowGeneratorFunction(
-      async <
-        Endpoint extends ApiMethodName<TApi>,
-        Args extends ApiMethodArgs<TApi, Endpoint>,
-      >(
-        endpoint: Endpoint,
-        args: Args extends undefined ? never : Args,
-        { useCache = false }: CrudFetchOptions = {},
-      ) => {
-        let items: TCollection | undefined;
-        if (useCache && this.collection.length > 0) {
-          items = await new Promise((resolve) => resolve(this.collection));
-        }
-        if (!useCache || !items) {
-          items = (await this.apiCall(endpoint as never, args, {
-            exclusiveKey: 'fetchAll',
-            apply: (result) => {
-              if (result) {
-                this.setCollection(result as TCollection);
-                return;
-              }
-              this.setCollection([] as unknown as TCollection);
-              console.warn(
-                `[${this.name}] API call returned null/undefined for collection`,
-              );
-            },
-          })) as unknown as TCollection | undefined;
-        }
-        return items;
-      },
-    ),
-  );
+  _fetchAll = flow(function* <
+    Endpoint extends ApiMethodName<TApi>,
+    Args extends ApiMethodArgs<TApi, Endpoint>,
+  >(
+    this: CrudCollectionStore<TApi, TSingle, TCollection>,
+    endpoint: Endpoint,
+    args: Args extends undefined ? never : Args,
+    { useCache = false }: CrudFetchOptions = {},
+  ) {
+    let items: TCollection | undefined;
+    if (useCache && this.collection.length > 0) {
+      const cachedItems: unknown = yield Promise.resolve(this.collection);
+      items = cachedItems as TCollection;
+    }
+    if (!useCache || !items) {
+      items = (yield this.apiCall(endpoint as never, args, {
+        exclusiveKey: 'fetchAll',
+        apply: (result) => {
+          if (result) {
+            this.setCollection(result as TCollection);
+            return;
+          }
+          this.setCollection([] as unknown as TCollection);
+          console.warn(`[${this.name}] API call returned null/undefined for collection`);
+        },
+      })) as TCollection | undefined;
+    }
+    return items;
+  });
 
   /**
    * @protected
@@ -262,27 +138,24 @@ export class CrudCollectionStore<
    * @throws {Error} If the API endpoint does not return an item after creation.
    * @flow
    */
-  _create = flow(
-    toFlowGeneratorFunction(
-      async <
-        Endpoint extends ApiMethodName<TApi>,
-        Args extends ApiMethodArgs<TApi, Endpoint>,
-      >(
-        endpoint: Endpoint,
-        args: Args extends undefined ? never : Args,
-      ) => {
-        const item = (await this.apiCall(endpoint as never, args, {
-          apply: (result) => {
-            if (result) this.addItem(result as TSingle);
-          },
-        })) as unknown as TSingle | undefined;
-        if (!item) {
-          throw new Error('Create Endpoint did not return an item');
-        }
-        return item;
+  _create = flow(function* <
+    Endpoint extends ApiMethodName<TApi>,
+    Args extends ApiMethodArgs<TApi, Endpoint>,
+  >(
+    this: CrudCollectionStore<TApi, TSingle, TCollection>,
+    endpoint: Endpoint,
+    args: Args extends undefined ? never : Args,
+  ) {
+    const item = (yield this.apiCall(endpoint as never, args, {
+      apply: (result) => {
+        if (result) this.addItem(result as TSingle);
       },
-    ),
-  );
+    })) as unknown as TSingle | undefined;
+    if (!item) {
+      throw new Error('Create Endpoint did not return an item');
+    }
+    return item;
+  });
 
   /**
    * @protected
@@ -297,27 +170,24 @@ export class CrudCollectionStore<
    * @throws {Error} If the API endpoint does not return an item after update.
    * @flow
    */
-  _update = flow(
-    toFlowGeneratorFunction(
-      async <
-        Endpoint extends ApiMethodName<TApi>,
-        Args extends ApiMethodArgs<TApi, Endpoint>,
-      >(
-        endpoint: Endpoint,
-        args: Args extends undefined ? never : Args,
-      ) => {
-        const item = (await this.apiCall(endpoint as never, args, {
-          apply: (result) => {
-            if (result) this.editItem(result as TSingle);
-          },
-        })) as unknown as TSingle | undefined;
-        if (!item) {
-          throw new Error('Update Endpoint did not return an item');
-        }
-        return item;
+  _update = flow(function* <
+    Endpoint extends ApiMethodName<TApi>,
+    Args extends ApiMethodArgs<TApi, Endpoint>,
+  >(
+    this: CrudCollectionStore<TApi, TSingle, TCollection>,
+    endpoint: Endpoint,
+    args: Args extends undefined ? never : Args,
+  ) {
+    const item = (yield this.apiCall(endpoint as never, args, {
+      apply: (result) => {
+        if (result) this.editItem(result as TSingle);
       },
-    ),
-  );
+    })) as unknown as TSingle | undefined;
+    if (!item) {
+      throw new Error('Update Endpoint did not return an item');
+    }
+    return item;
+  });
 
   /**
    * @protected
@@ -331,26 +201,22 @@ export class CrudCollectionStore<
    * @returns {Promise<void>} A promise that resolves when the operation is complete.
    * @flow
    */
-  _delete = flow(
-    toFlowGeneratorFunction(
-      async <
-        Endpoint extends ApiMethodName<TApi>,
-        Args extends ApiMethodArgs<TApi, Endpoint>,
-      >(
-        endpoint: Endpoint,
-        args: Args extends undefined
-          ? never
-          : Args & {
-              id: ArrayElement<TCollection>['id'];
-            },
-      ) => {
-        const result = await this.apiCall(endpoint as never, args as never, {
-          apply: () => {
-            this.removeItem(args.id);
-          },
-        });
-        return result;
+  _delete = flow(function* <
+    Endpoint extends ApiMethodName<TApi>,
+    Args extends ApiMethodArgs<TApi, Endpoint>,
+  >(
+    this: CrudCollectionStore<TApi, TSingle, TCollection>,
+    endpoint: Endpoint,
+    args: Args extends undefined
+      ? never
+      : Args & {
+          id: ArrayElement<TCollection>['id'];
+        },
+  ) {
+    return (yield this.apiCall(endpoint as never, args as never, {
+      apply: () => {
+        this.removeItem(args.id);
       },
-    ),
-  );
+    })) as unknown;
+  });
 }

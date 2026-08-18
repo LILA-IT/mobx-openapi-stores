@@ -4,18 +4,8 @@ import { handleError } from './handleError';
 import type { ApiMethodArgs, ApiMethodName } from './types/ApiMethod.type';
 
 /**
- * Invokes an OpenAPI-generated client method while preserving `this` binding.
- *
- * Generated clients often rely on instance state (configuration, middleware).
- * Calling `api[endpoint](args)` can lose `this`; `.call(api, args)` keeps it.
- *
- * @template Api - API client type (must extend {@link ApiType}).
- * @template Endpoint - Method name on `Api`.
- * @template Args - First argument type for `Endpoint`.
- * @param apiCall - Endpoint method name.
- * @param args - Request payload / parameters for the endpoint.
- * @param api - API client instance.
- * @returns The awaited endpoint result, or rethrows via {@link handleError}.
+ * Invokes a generated client method with the client as `this`.
+ * Errors are normalized and rethrown through {@link handleError}.
  */
 export const callApi = async <
   Api extends ApiType,

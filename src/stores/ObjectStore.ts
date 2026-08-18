@@ -21,75 +21,8 @@ import {
 import { SingleStore } from './SingleStore';
 
 /**
- * @class ObjectStore
- * @template TApi - The API client type, inherited from `SingleStore`.
- * @template TKey - The type for the keys of the main observable object (e.g., string, number).
- * @template TTarget - The type of the individual items that will be stored (must conform to `SingleType`).
- *                     If `TType` is 'collection', entries will be `TTarget[]`.
- * @template TType - Specifies whether entries in the object are single items ('single') or collections ('collection').
- *                   Defaults to 'collection'.
- * @template TObject - The overall shape of the observable object, conforming to `ObjectType<TKey, TTarget, TType>`.
- *
- * @description Manages a dictionary-like observable object (`_object`) where each key maps to either a single entity
- * or a collection of entities (of type `TTarget`). This is useful for grouping items by a common key,
- * such as tasks grouped by project ID, or comments grouped by post ID.
- * Extends `SingleStore` (using `TTarget` as the `TSingle` for `SingleStore` context, for managing a `current` item of type `TTarget`).
- *
- * @extends SingleStore<TApi, TTarget>
- *
- * @property {TObject} object - A computed property providing access to the root observable object.
- *
- * @method getEntryById - Retrieves the entry (a `TTarget` or `TTarget[]`) associated with a given `TKey`.
- * @method getById - Alias for `getEntryById`.
- * @method setEntry - Sets or updates the entry for a given `TKey`.
- * @method removeEntry - Removes an entry from the object by its `TKey`.
- * @method entryIsSet - Checks if an entry exists for a given `TKey`.
- *
- * Methods for when `TType` is 'collection':
- * @method addItem - Adds a `TTarget` item to the collection at the specified `entryId` (`TKey`).
- * @method editItem - Finds an item by its `id` across all collection entries and updates it.
- * @method removeItem - Removes an item by its `id` from its collection entry. Can optionally specify the `entryId`.
- * @method getEntryIdByItemId - Finds the `TKey` (entry ID) to which an item (by its `id`) belongs.
- * @method getItemById - Finds a specific `TTarget` item by its `id` by searching through all collection entries.
- *
- * @example
- * // Using createApi function (new approach)
- * const groupedTaskStore = new ObjectStore<TaskApi, string, Task, 'collection'>({
- *   name: 'GroupedTaskStore',
- *   createApi: (config) => new TaskApi(config)
- * });
- *
- * @example
- * // Extending with custom logic (recommended for complex cases)
- * class GroupedTaskStore extends ObjectStore<TaskApi, string, Task, 'collection'> {
- *   constructor(name?: string) {
- *     super(name || 'GroupedTaskStore');
- *     makeObservable(this, { addTaskToCategory: action });
- *   }
- *
- *   // initApi implementation
- *   initApi(config: TaskApiConfig) {
- *     this.setApi(new TaskApi(config));
- *   }
- *
- *   async addTaskToCategory(categoryId: string, taskData: CreateTaskDto) {
- *     const newTask = await this.apiCall('createTask', { taskData }) as Task; // Assuming API call returns Task
- *     if (newTask) {
- *       if (!this.entryIsSet(categoryId)) {
- *         this.setEntry(categoryId, [] as Task[]); // Initialize category if it doesn't exist
- *       }
- *       this.addItem(categoryId, newTask);
- *     }
- *   }
- * }
- *
- * @example
- * // Backwards compatible usage
- * class LegacyGroupedStore extends ObjectStore<TaskApi, string, Task> {
- *   constructor() {
- *     super('LegacyGroupedStore'); // Old signature still works
- *   }
- * }
+ * Stores entities by key. In `collection` mode each key maps to an entity array;
+ * in `single` mode each key maps to one entity.
  */
 export class ObjectStore<
   TApi extends ApiType,
@@ -98,31 +31,10 @@ export class ObjectStore<
   TType extends 'single' | 'collection' = 'collection',
   TObject extends ObjectType<TKey, TTarget, TType> = ObjectType<TKey, TTarget, TType>,
 > extends SingleStore<TApi, TTarget> {
-  /**
-   * @protected
-   * @property {TObject} _object - The internal observable object holding keyed entries.
-   * @observable
-   */
+  /** Internal observable backing object; prefer {@link object}. */
   _object = observable.object<TObject>({} as TObject);
 
-  /**
-   * @constructor
-   * @description Creates a new ObjectStore instance. Supports both legacy and new constructor signatures for backwards compatibility.
-   * @param {string | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi }} [nameOrOptions]
-   *        - Legacy: A string representing the store name
-   *        - New: An options object with optional name and createApi function
-   *
-   * @example
-   * // Legacy signature (backwards compatible)
-   * const store1 = new ObjectStore('MyStore');
-   *
-   * @example
-   * // New signature with createApi function
-   * const store2 = new ObjectStore({
-   *   name: 'MyStore',
-   *   createApi: (config) => new MyApi(config)
-   * });
-   */
+  /** Creates a keyed store from a name or API factory options. */
   constructor(
     nameOrOptions?:
       string | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi },

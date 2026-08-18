@@ -4,47 +4,7 @@ import { type ArrayElement, type CollectionType, type SingleType } from '../type
 import { type ApiConfig, type ApiType } from '../types/ApiType';
 import { SingleStore } from './SingleStore';
 
-/**
- * @class CollectionStore
- * @template TApi - The generated API client type inherited from `SingleStore`.
- * @template TSingle - The entity type stored in the collection.
- * @template TCollection - The collection type, defaulting to `TSingle[]`.
- * @description Manages an observable collection of entities together with the
- * `current` selection and API capabilities inherited from `SingleStore`.
- * Provides helpers for adding, updating, and removing items.
- *
- * Collection transforms use native `Array.map` / `Array.filter` / `Array.find`
- * and `Object.assign`, publishing via `setCollection` so MobX observers see a
- * replaced array reference.
- *
- * @extends SingleStore<TApi, TSingle>
- *
- * @property {TCollection} collection - Computed access to the observable collection.
- *
- * @method setCollection - Replaces the complete collection.
- * @method editCollection - Alias for replacing the complete collection.
- * @method addItem - Appends an item and optionally selects it.
- * @method setItem - Replaces an existing item with the same ID.
- * @method editItem - Merges changes into an existing item with the same ID.
- * @method removeItem - Removes an item by ID.
- * @method getById - Finds an item by ID, checking `current` first.
- *
- * @example
- * const productStore = new CollectionStore<ProductApi, Product>({
- *   name: 'ProductListStore',
- *   createApi: (config) => new ProductApi(config),
- * });
- *
- * productStore.setCollection(products);
- * productStore.addItem(newProduct, true);
- *
- * @example
- * class ProductListStore extends CollectionStore<ProductApi, Product> {
- *   constructor() {
- *     super('ProductListStore');
- *   }
- * }
- */
+/** Manages an observable entity collection and an optional current selection. */
 export class CollectionStore<
   TApi extends ApiType,
   TSingle extends SingleType,
@@ -75,8 +35,7 @@ export class CollectionStore<
    */
   constructor(
     nameOrOptions?:
-      | string
-      | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi },
+      string | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi },
   ) {
     super(nameOrOptions);
     makeObservable(this, {
@@ -209,7 +168,6 @@ export class CollectionStore<
   ): ArrayElement<TCollection> | TSingle | undefined => {
     if (this.current?.id === id) return this.current;
     return this.collection.find((item) => item.id === id) as
-      | ArrayElement<TCollection>
-      | undefined;
+      ArrayElement<TCollection> | undefined;
   };
 }
