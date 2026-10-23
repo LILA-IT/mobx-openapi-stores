@@ -8,6 +8,10 @@ import { expectAtomic, expectBudget, observeSignal } from './helpers/reactivity'
 type Entity = {
   id: number;
   name: string;
+  details?: {
+    address: { city: string };
+    tags: string[];
+  };
 };
 
 function createStore(): SingleStore<ApiType, Entity> {
@@ -97,6 +101,64 @@ describe('SingleStore reactivity', () => {
     store.setCurrent(entity);
 
     expectBudget(handle, 1);
+    handle.dispose();
+  });
+
+  it('notifies when a deeply nested current property is mutated directly', () => {
+    const store = createStore();
+    store.setCurrent({
+      id: 1,
+      name: 'Alice',
+      details: { address: { city: 'Berlin' }, tags: ['initial'] },
+    });
+    const handle = observeSignal(() => store.current?.details?.address.city ?? '');
+
+    const current = store.current;
+    if (!current?.details) throw new Error('Expected nested current data');
+    current.details.address.city = 'Hamburg';
+
+    expectBudget(handle, 1);
+    expect(handle.observer).toHaveBeenCalledWith('Hamburg', 'Berlin', expect.anything());
+    handle.dispose();
+  });
+
+  it('notifies when a nested current object is replaced directly', () => {
+    const store = createStore();
+    store.setCurrent({
+      id: 1,
+      name: 'Alice',
+      details: { address: { city: 'Berlin' }, tags: ['initial'] },
+    });
+    const handle = observeSignal(() => store.current?.details?.address.city ?? '');
+
+    const current = store.current;
+    if (!current?.details) throw new Error('Expected nested current data');
+    current.details.address = { city: 'Cologne' };
+
+    expectBudget(handle, 1);
+    expect(handle.observer).toHaveBeenCalledWith('Cologne', 'Berlin', expect.anything());
+    handle.dispose();
+  });
+
+  it('notifies when a deeply nested current array is mutated directly', () => {
+    const store = createStore();
+    store.setCurrent({
+      id: 1,
+      name: 'Alice',
+      details: { address: { city: 'Berlin' }, tags: ['initial'] },
+    });
+    const handle = observeSignal(() => store.current?.details?.tags.join(',') ?? '');
+
+    const current = store.current;
+    if (!current?.details) throw new Error('Expected nested current data');
+    current.details.tags.push('added');
+
+    expectBudget(handle, 1);
+    expect(handle.observer).toHaveBeenCalledWith(
+      'initial,added',
+      'initial',
+      expect.anything(),
+    );
     handle.dispose();
   });
 

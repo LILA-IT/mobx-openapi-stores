@@ -1,10 +1,4 @@
-/**
- * ObjectStore mutation/lookup benches after native Array cutover.
- *
- * Compare against the lodash baseline from `chore/objectstore-lodash-bench-baseline`
- * (20 groups × 50 items).
- */
-import { bench, describe } from 'vitest';
+import { describe, test } from 'vitest';
 
 import { type ApiType } from '../../types';
 import { ObjectStore } from '../ObjectStore';
@@ -26,29 +20,39 @@ function createFilledStore(): ObjectStore<ApiType, string, Item> {
   return store;
 }
 
-describe('ObjectStore mutation (native flatMap/filter/find)', () => {
-  bench('getItemById (native flatMap + find) x1000 items', () => {
-    const store = createFilledStore();
-    store.getItemById(500);
+describe('ObjectStore mutations and lookups', () => {
+  test('getItemById (native flatMap + find) x1000 items', async ({ bench }) => {
+    await bench('getItemById (native flatMap + find) x1000 items', () => {
+      const store = createFilledStore();
+      store.getItemById(500);
+    }).run();
   });
 
-  bench('getEntryIdByItemId x1000 items', () => {
-    const store = createFilledStore();
-    store.getEntryIdByItemId(500);
+  test('getEntryIdByItemId x1000 items', async ({ bench }) => {
+    await bench('getEntryIdByItemId x1000 items', () => {
+      const store = createFilledStore();
+      store.getEntryIdByItemId(500);
+    }).run();
   });
 
-  bench('editItem (find entry + setEntry) x1000 items', () => {
-    const store = createFilledStore();
-    store.editItem(500, { id: 500, name: 'patched' });
+  test('editItem (find entry + setEntry) x1000 items', async ({ bench }) => {
+    await bench('editItem (find entry + setEntry) x1000 items', () => {
+      const store = createFilledStore();
+      store.editItem(500, { id: 500, name: 'patched' });
+    }).run();
   });
 
-  bench('removeItem (native filter + setEntry) x1000 items', () => {
-    const store = createFilledStore();
-    store.removeItem(500);
+  test('removeItem (native filter + setEntry) x1000 items', async ({ bench }) => {
+    await bench('removeItem (native filter + setEntry) x1000 items', () => {
+      const store = createFilledStore();
+      store.removeItem(500);
+    }).run();
   });
 
-  bench('addItem (push + setEntry) x1000 items', () => {
-    const store = createFilledStore();
-    store.addItem('group-0', { id: 99999, name: 'new' });
+  test('addItem (push + setEntry) x1000 items', async ({ bench }) => {
+    await bench('addItem (push + setEntry) x1000 items', () => {
+      const store = createFilledStore();
+      store.addItem('group-0', { id: 99999, name: 'new' });
+    }).run();
   });
 });

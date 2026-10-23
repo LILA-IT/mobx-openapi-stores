@@ -28,7 +28,7 @@ function createDeferred<T>(): Deferred<T> {
 function createTestApi(
   getValue: TestApi['getValue'] = ({ key }) => Promise.resolve(`value:${key}`),
 ): TestApi {
-  return { getValue: vi.fn(getValue) } as unknown as TestApi;
+  return { getValue: vi.fn(getValue) };
 }
 
 function createReadyStore(api: TestApi = createTestApi()): ApiStore<TestApi> {

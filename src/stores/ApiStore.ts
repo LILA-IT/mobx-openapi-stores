@@ -1,6 +1,6 @@
 import { action, computed, flow, makeObservable, observable } from 'mobx';
 
-import { type ApiConfig, type ApiType } from '../types/ApiType';
+import { type ApiConfig, type ApiResult, type ApiType } from '../types/ApiType';
 import { callApi } from '../utils/api';
 import type { ApiMethodArgs, ApiMethodName } from '../utils/api/types/ApiMethod.type';
 import { actionBoundCompat } from '../utils/mobx/actionBoundCompat';
@@ -139,7 +139,7 @@ export class ApiStore<
         endpoint,
         args,
         this.api as unknown as Api,
-      )) as unknown as Awaited<ReturnType<Api[Endpoint & keyof Api]>>;
+      )) as unknown as ApiResult<Api, Endpoint>;
       if (apply) {
         const shouldApply =
           exclusiveKey === undefined ||

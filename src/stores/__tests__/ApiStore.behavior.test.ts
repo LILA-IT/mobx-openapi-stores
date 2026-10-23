@@ -12,7 +12,7 @@ type TestApi = ApiType & {
 function createTestApi(): TestApi {
   return {
     getValue: vi.fn(({ key }: { key: string }) => Promise.resolve(`value:${key}`)),
-  } as unknown as TestApi;
+  };
 }
 
 describe('ApiStore behavior', () => {
@@ -61,7 +61,7 @@ describe('ApiStore behavior', () => {
     const store = new ApiStore<TestApi>('TestStore');
     const api = {
       getValue: vi.fn().mockRejectedValue(new Error('Request failed')),
-    } as unknown as TestApi;
+    };
     store.setApi(api);
 
     await expect(

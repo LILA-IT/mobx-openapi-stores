@@ -65,7 +65,7 @@ function createTestApi(overrides: Partial<TestApi> = {}): TestApi {
     ),
     remove: vi.fn(() => Promise.resolve()),
     ...overrides,
-  } as unknown as TestApi;
+  };
 }
 
 function createReadyStore(api: TestApi = createTestApi()): TestCrudCollectionStore {

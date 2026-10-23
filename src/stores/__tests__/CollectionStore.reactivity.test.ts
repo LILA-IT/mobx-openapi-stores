@@ -7,6 +7,10 @@ import { expectAtomic, expectBudget, observeSignal } from './helpers/reactivity'
 type Item = {
   id: number;
   name: string;
+  details?: {
+    address: { city: string };
+    tags: string[];
+  };
 };
 
 function createStore(): CollectionStore<ApiType, Item> {
@@ -115,6 +119,97 @@ describe('CollectionStore reactivity', () => {
       store.removeItem(1);
 
       expectBudget(handle, 1);
+      handle.dispose();
+    });
+  });
+
+  describe('deep observability', () => {
+    it('notifies when a deeply nested collection property is mutated directly', () => {
+      const store = new CollectionStore<ApiType, Item>('CollectionDeepObject');
+      store.setCollection([
+        {
+          id: 1,
+          name: 'First',
+          details: { address: { city: 'Berlin' }, tags: ['initial'] },
+        },
+      ]);
+      const handle = observeSignal(() => store.collection[0].details?.address.city ?? '');
+
+      const item = store.collection[0];
+      if (!item.details) throw new Error('Expected a nested collection item');
+      item.details.address.city = 'Hamburg';
+
+      expectBudget(handle, 1);
+      expect(handle.observer).toHaveBeenCalledWith(
+        'Hamburg',
+        'Berlin',
+        expect.anything(),
+      );
+      handle.dispose();
+    });
+
+    it('notifies when an item is pushed through the public collection getter', () => {
+      const store = createStore();
+      const handle = observeSignal(() => collectionFingerprint(store));
+
+      store.collection.push({ id: 3, name: 'Third' });
+
+      expectBudget(handle, 1);
+      expect(handle.observer).toHaveBeenCalledWith(
+        '1:First,2:Second,3:Third',
+        '1:First,2:Second',
+        expect.anything(),
+      );
+      handle.dispose();
+    });
+
+    it('notifies when a nested object is replaced directly', () => {
+      const store = new CollectionStore<ApiType, Item>('CollectionReplaceObject');
+      store.setCollection([
+        {
+          id: 1,
+          name: 'First',
+          details: { address: { city: 'Berlin' }, tags: ['initial'] },
+        },
+      ]);
+      const handle = observeSignal(() => store.collection[0].details?.address.city ?? '');
+
+      const item = store.collection[0];
+      if (!item.details) throw new Error('Expected a nested collection item');
+      item.details.address = { city: 'Cologne' };
+
+      expectBudget(handle, 1);
+      expect(handle.observer).toHaveBeenCalledWith(
+        'Cologne',
+        'Berlin',
+        expect.anything(),
+      );
+      handle.dispose();
+    });
+
+    it('notifies when a deeply nested collection array is mutated directly', () => {
+      const store = new CollectionStore<ApiType, Item>('CollectionDeepArray');
+      store.setCollection([
+        {
+          id: 1,
+          name: 'First',
+          details: { address: { city: 'Berlin' }, tags: ['initial'] },
+        },
+      ]);
+      const handle = observeSignal(
+        () => store.collection[0].details?.tags.join(',') ?? '',
+      );
+
+      const item = store.collection[0];
+      if (!item.details) throw new Error('Expected a nested collection item');
+      item.details.tags.push('added');
+
+      expectBudget(handle, 1);
+      expect(handle.observer).toHaveBeenCalledWith(
+        'initial,added',
+        'initial',
+        expect.anything(),
+      );
       handle.dispose();
     });
   });

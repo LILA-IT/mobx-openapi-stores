@@ -7,6 +7,10 @@ import { expectBudget, observeSignal } from './helpers/reactivity';
 type Item = {
   id: string;
   name: string;
+  details?: {
+    address: { city: string };
+    tags: string[];
+  };
 };
 
 type TestApi = ApiType & {
@@ -65,7 +69,7 @@ function createTestApi(overrides: Partial<TestApi> = {}): TestApi {
     ),
     remove: vi.fn(() => Promise.resolve()),
     ...overrides,
-  } as unknown as TestApi;
+  };
 }
 
 function createReadyStore(api: TestApi = createTestApi()): TestCrudCollectionStore {
@@ -79,6 +83,32 @@ function collectionFingerprint(store: TestCrudCollectionStore): string {
 }
 
 describe('CrudCollectionStore reactivity', () => {
+  it('keeps fetched nested collection data deeply observable', async () => {
+    const api = createTestApi({
+      findAll: vi.fn(() =>
+        Promise.resolve([
+          {
+            id: '1',
+            name: 'One',
+            details: { address: { city: 'Berlin' }, tags: ['initial'] },
+          },
+        ]),
+      ),
+    });
+    const store = createReadyStore(api);
+
+    await store.fetchAll();
+    const handle = observeSignal(() => store.collection[0].details?.address.city ?? '');
+    const item = store.collection[0];
+    if (!item.details) throw new Error('Expected fetched nested data');
+
+    item.details.address.city = 'Hamburg';
+
+    expectBudget(handle, 1);
+    expect(handle.observer).toHaveBeenCalledWith('Hamburg', 'Berlin', expect.anything());
+    handle.dispose();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });

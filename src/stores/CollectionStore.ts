@@ -1,7 +1,7 @@
 import { action, computed, makeObservable, observable } from 'mobx';
 
 import { type ArrayElement, type CollectionType, type SingleType } from '../types';
-import { type ApiConfig, type ApiType } from '../types/ApiType';
+import { type ApiConfiguration, type ApiType } from '../types/ApiType';
 import { SingleStore } from './SingleStore';
 
 /** Manages an observable entity collection and an optional current selection. */
@@ -9,19 +9,15 @@ export class CollectionStore<
   TApi extends ApiType,
   TSingle extends SingleType,
   TCollection extends CollectionType<TSingle> = TSingle[],
-> extends SingleStore<TApi, TSingle> {
-  /**
-   * @protected
-   * @property {TCollection} _collection - Internal observable collection.
-   * @observable
-   */
-  _collection: TCollection = [] as unknown as TCollection;
+  TConfig extends ApiConfiguration = ApiConfiguration,
+> extends SingleStore<TApi, TSingle, TConfig> {
+  #collection = observable.object({ value: [] as unknown as TCollection });
 
   /**
    * @constructor
    * @description Creates a collection store using either the legacy name or
    * an options object that can also construct the API client.
-   * @param {string | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi }} [nameOrOptions]
+   * @param {string | { name?: string; createApi?: (config: TConfig) => TApi }} [nameOrOptions]
    * The store name, or store configuration.
    *
    * @example
@@ -34,12 +30,10 @@ export class CollectionStore<
    * });
    */
   constructor(
-    nameOrOptions?:
-      string | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi },
+    nameOrOptions?: string | { name?: string; createApi?: (config: TConfig) => TApi },
   ) {
     super(nameOrOptions);
     makeObservable(this, {
-      _collection: observable,
       collection: computed,
       setCollection: action,
       editCollection: action,
@@ -58,7 +52,7 @@ export class CollectionStore<
    * @computed
    */
   get collection() {
-    return this._collection;
+    return this.#collection.value;
   }
 
   /**
@@ -69,7 +63,7 @@ export class CollectionStore<
    * @action
    */
   setCollection = (newCollection: TCollection) => {
-    this._collection = newCollection;
+    this.#collection.value = newCollection;
   };
 
   /**
@@ -95,7 +89,7 @@ export class CollectionStore<
    */
   addItem = (newItem: TSingle, setCurrent: boolean = true) => {
     if (setCurrent) this.setCurrent(newItem);
-    this._collection.push(newItem);
+    this.#collection.value.push(newItem);
   };
 
   /**
@@ -112,7 +106,7 @@ export class CollectionStore<
   setItem = (item: TSingle, setCurrent: boolean = true) => {
     if (setCurrent || this.current?.id === item.id) this.setCurrent(item);
     this.setCollection(
-      this._collection.map((collectionItem) =>
+      this.#collection.value.map((collectionItem) =>
         collectionItem.id === item.id ? item : collectionItem,
       ) as TCollection,
     );
@@ -133,7 +127,7 @@ export class CollectionStore<
       this.setCurrent(updatedItem);
     }
     this.setCollection(
-      this._collection.map((itemInCollection) =>
+      this.#collection.value.map((itemInCollection) =>
         itemInCollection.id === updatedItem.id
           ? Object.assign(itemInCollection, updatedItem)
           : itemInCollection,
@@ -152,7 +146,9 @@ export class CollectionStore<
    */
   removeItem = (id: ArrayElement<TCollection>['id']) => {
     if (this.current?.id === id) this.setCurrent(null);
-    this.setCollection(this._collection.filter((item) => item.id !== id) as TCollection);
+    this.setCollection(
+      this.#collection.value.filter((item) => item.id !== id) as TCollection,
+    );
   };
 
   /**

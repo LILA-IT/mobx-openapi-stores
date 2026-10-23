@@ -217,8 +217,7 @@ Extends `SingleStore`. Manages a collection (array) of observable entities. The 
 
 **Key Members**:
 
-- `_collection: TCollection` (observable): The internal observable array.
-- `collection: TCollection` (computed): Accessor for `_collection`.
+- `collection: TCollection` (computed): Accessor for the observable collection.
 - `setCollection(newCollection: TCollection)` (action): Replaces the entire collection.
 - `addItem(newItem: TSingle, setCurrent?: boolean)` (action): Adds an item.
 - `setItem(item: TSingle, setCurrent?: boolean)` (action): Updates an existing item or adds it if not present.
@@ -389,7 +388,7 @@ Explicit type annotations for `flow` (e.g., `flow<ReturnType, [Arg1Type, Arg2Typ
 
 ### 6. `ObjectStore<TApi, TKey, TTarget, TType, TObject>`
 
-Extends `SingleStore` (where `TSingle` from `SingleStore` corresponds to `TTarget` here). Manages a dictionary-like observable object (`_object`) where each key maps to either a single entity or a collection of entities.
+Extends `SingleStore` (where `TSingle` from `SingleStore` corresponds to `TTarget` here). Manages a dictionary-like observable object where each key maps to either a single entity or a collection of entities.
 
 **Purpose**: Useful for grouping items by a common key, e.g., tasks by project ID, comments by post ID. The `current` item from `SingleStore` refers to an individual `TTarget` item.
 
@@ -403,8 +402,7 @@ Extends `SingleStore` (where `TSingle` from `SingleStore` corresponds to `TTarge
 
 **Key Members**:
 
-- `_object: TObject` (observable): The internal observable object map.
-- `object: TObject` (computed): Accessor for `_object`.
+- `object: TObject` (computed): Accessor for the observable object map.
 - `getEntryById(id: TKey): TObject[TKey] | undefined`: Retrieves the entry (item or collection) for a key.
 - `setEntry(id: TKey, item: TObject[TKey])`: Sets or updates an entry.
 - `removeEntry(id: TKey)`: Removes an entry.
@@ -489,6 +487,10 @@ class PostCommentsStore extends ObjectStore<
 ## TypeScript and Generics
 
 These stores are heavily reliant on TypeScript generics. Understanding how to provide the correct types for `TApi`, `TSingle`, `TConfig`, etc., is crucial for leveraging their type-safety benefits. Refer to your OpenAPI-generated client for the specific types to use.
+
+## Upgrading
+
+See [MIGRATION.md](MIGRATION.md) for breaking changes in 2.0.
 
 ## Contributing
 

@@ -1,7 +1,7 @@
 import { flow, makeObservable } from 'mobx';
 
 import { type ArrayElement, type CollectionType, type SingleType } from '../types';
-import { type ApiConfig, type ApiType } from '../types/ApiType';
+import { type ApiConfiguration, type ApiType } from '../types/ApiType';
 import type { ApiMethodArgs, ApiMethodName } from '../utils/api/types/ApiMethod.type';
 import { CollectionStore } from './CollectionStore';
 
@@ -15,11 +15,11 @@ export class CrudCollectionStore<
   TApi extends ApiType,
   TSingle extends SingleType,
   TCollection extends CollectionType<TSingle> = TSingle[],
-> extends CollectionStore<TApi, TSingle, TCollection> {
+  TConfig extends ApiConfiguration = ApiConfiguration,
+> extends CollectionStore<TApi, TSingle, TCollection, TConfig> {
   /** Creates a CRUD store from a name or API factory options. */
   constructor(
-    nameOrOptions?:
-      string | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi },
+    nameOrOptions?: string | { name?: string; createApi?: (config: TConfig) => TApi },
   ) {
     super(nameOrOptions);
     makeObservable(this, {

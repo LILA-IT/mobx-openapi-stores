@@ -1,4 +1,3 @@
-import type { LogStamp, Timestamp } from './ApiStamps.type';
 import type {
   ApiMethod,
   ApiMethodArgs,
@@ -6,11 +5,4 @@ import type {
   ApiMethodResult,
 } from './ApiMethod.type';
 
-export type {
-  LogStamp,
-  Timestamp,
-  ApiMethod,
-  ApiMethodArgs,
-  ApiMethodName,
-  ApiMethodResult,
-};
+export type { ApiMethod, ApiMethodArgs, ApiMethodName, ApiMethodResult };

@@ -50,6 +50,21 @@ describe('getErrorMessage', () => {
     );
   });
 
+  it('returns the response message from a foreign generated runtime error', async () => {
+    class GeneratedResponseError extends Error {
+      constructor(readonly response: Response) {
+        super('Response returned an error code');
+      }
+    }
+    const response = new Response(JSON.stringify({ message: 'API detail' }), {
+      status: 409,
+    });
+
+    await expect(getErrorMessage(new GeneratedResponseError(response))).resolves.toBe(
+      'API detail',
+    );
+  });
+
   it('returns the message from a standard Error', async () => {
     await expect(getErrorMessage(new Error('Network failed'))).resolves.toBe(
       'Network failed',

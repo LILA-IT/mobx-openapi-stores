@@ -12,6 +12,10 @@ import { expectBudget, observeSignal } from './helpers/reactivity';
 type Item = {
   id: string;
   name: string;
+  details?: {
+    address: { city: string };
+    tags: string[];
+  };
 };
 
 class TestPaginationStore extends PaginationStore<ApiType, Item> {
@@ -86,6 +90,64 @@ function paginationStateFingerprint(store: TestPaginationStore): string {
 describe('PaginationStore reactivity', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('keeps fetched page collection data deeply observable', async () => {
+    const store = new TestPaginationStore('PaginationDeepCollection', {
+      prefetchCount: 0,
+    });
+    store.fetchPagesApiMock.mockResolvedValueOnce(
+      createResponse(1, [
+        {
+          id: '1',
+          name: 'One',
+          details: { address: { city: 'Berlin' }, tags: ['initial'] },
+        },
+      ]),
+    );
+
+    await store.fetchPage(1);
+    const handle = observeSignal(() => store.collection[0].details?.address.city ?? '');
+    const item = store.collection[0];
+    if (!item.details) throw new Error('Expected fetched nested data');
+
+    item.details.address.city = 'Hamburg';
+
+    expectBudget(handle, 1);
+    expect(handle.observer).toHaveBeenCalledWith('Hamburg', 'Berlin', expect.anything());
+    handle.dispose();
+  });
+
+  it('keeps fetched page cache data deeply observable', async () => {
+    const store = new TestPaginationStore('PaginationDeepCache', {
+      prefetchCount: 0,
+    });
+    store.fetchPagesApiMock.mockResolvedValueOnce(
+      createResponse(1, [
+        {
+          id: '1',
+          name: 'One',
+          details: { address: { city: 'Berlin' }, tags: ['initial'] },
+        },
+      ]),
+    );
+
+    await store.fetchPage(1);
+    const handle = observeSignal(
+      () => store.pagesCache.get(1)?.[0]?.details?.tags.join(',') ?? '',
+    );
+    const item = store.pagesCache.get(1)?.[0];
+    if (!item?.details) throw new Error('Expected cached nested data');
+
+    item.details.tags.push('added');
+
+    expectBudget(handle, 1);
+    expect(handle.observer).toHaveBeenCalledWith(
+      'initial,added',
+      'initial',
+      expect.anything(),
+    );
+    handle.dispose();
   });
 
   it('fetchPage updating cache: pagesCache budget 1', async () => {

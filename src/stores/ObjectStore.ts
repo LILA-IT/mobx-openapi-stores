@@ -11,7 +11,7 @@ import {
 } from 'mobx';
 
 import { type ObjectType, type SingleType } from '../types';
-import { type ApiConfig, type ApiType } from '../types/ApiType';
+import { type ApiConfiguration, type ApiType } from '../types/ApiType';
 import {
   findCollectionEntryIdByItemId,
   findItemInCollectionEntries,
@@ -30,18 +30,16 @@ export class ObjectStore<
   TTarget extends SingleType = SingleType,
   TType extends 'single' | 'collection' = 'collection',
   TObject extends ObjectType<TKey, TTarget, TType> = ObjectType<TKey, TTarget, TType>,
-> extends SingleStore<TApi, TTarget> {
-  /** Internal observable backing object; prefer {@link object}. */
-  _object = observable.object<TObject>({} as TObject);
+  TConfig extends ApiConfiguration = ApiConfiguration,
+> extends SingleStore<TApi, TTarget, TConfig> {
+  #object = observable.object<TObject>({} as TObject);
 
   /** Creates a keyed store from a name or API factory options. */
   constructor(
-    nameOrOptions?:
-      string | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi },
+    nameOrOptions?: string | { name?: string; createApi?: (config: TConfig) => TApi },
   ) {
     super(nameOrOptions);
     makeObservable(this, {
-      _object: observable,
       object: computed,
       getEntryById: false,
       getById: false,
@@ -63,7 +61,7 @@ export class ObjectStore<
    * @computed
    */
   get object() {
-    return this._object;
+    return this.#object;
   }
 
   /**
@@ -74,7 +72,7 @@ export class ObjectStore<
    * @returns {TObject[TKey] | undefined} The entry if found, otherwise undefined.
    */
   getEntryById(id: keyof TObject | TKey): TObject[TKey] | undefined {
-    return get(this._object, String(id)) as TObject[TKey] | undefined; // Cast id to string as mobx get expects string keys
+    return get(this.#object, String(id)) as TObject[TKey] | undefined; // Cast id to string as mobx get expects string keys
   }
 
   /**
@@ -95,7 +93,7 @@ export class ObjectStore<
    * @action
    */
   setEntry(id: keyof TObject | TKey, item: TObject[TKey]): void {
-    set(this._object, String(id), item);
+    set(this.#object, String(id), item);
   }
 
   /**
@@ -105,7 +103,7 @@ export class ObjectStore<
    * @action
    */
   removeEntry(id: TKey): void {
-    remove(this._object, String(id));
+    remove(this.#object, String(id));
   }
 
   /**
@@ -115,7 +113,7 @@ export class ObjectStore<
    * @returns {boolean} True if the entry exists, false otherwise.
    */
   entryIsSet(id: TKey): boolean {
-    return has(this._object, String(id));
+    return has(this.#object, String(id));
   }
 
   /**
@@ -214,6 +212,6 @@ export class ObjectStore<
   }
 
   #collectionEntryPairs(): ObjectEntryPair[] {
-    return entries(this._object) as ObjectEntryPair[];
+    return entries(this.#object) as ObjectEntryPair[];
   }
 }

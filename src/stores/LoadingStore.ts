@@ -18,12 +18,7 @@ export type LoadingTicket = {
  * Prefer balanced {@link beginLoading} and {@link endLoading} calls for overlapping work.
  */
 export class LoadingStore {
-  /**
-   * @protected
-   * @property {ObservableMap<string, number>} _loadingCounts - Active holders by key.
-   * @observable
-   */
-  _loadingCounts: ObservableMap<string, number> = observable.map();
+  #loadingCounts: ObservableMap<string, number> = observable.map();
 
   /**
    * Bumped by absolute {@link setIsLoading}(false). Stale tickets no-op on end.
@@ -37,7 +32,6 @@ export class LoadingStore {
    */
   constructor() {
     makeObservable(this, {
-      _loadingCounts: observable,
       isLoading: computed,
       beginLoading: action,
       endLoading: action,
@@ -55,7 +49,7 @@ export class LoadingStore {
    */
   beginLoading = (key: string = DEFAULT_LOADING_KEY): LoadingTicket => {
     const ticket: LoadingTicket = { key, epoch: this.#loadingEpoch };
-    this._loadingCounts.set(key, (this._loadingCounts.get(key) ?? 0) + 1);
+    this.#loadingCounts.set(key, (this.#loadingCounts.get(key) ?? 0) + 1);
     return ticket;
   };
 
@@ -87,7 +81,7 @@ export class LoadingStore {
    * @param {string} key - Loading scope key.
    * @returns {boolean}
    */
-  isLoadingFor = (key: string) => (this._loadingCounts.get(key) ?? 0) > 0;
+  isLoadingFor = (key: string) => (this.#loadingCounts.get(key) ?? 0) > 0;
 
   /**
    * @method setIsLoading
@@ -100,11 +94,11 @@ export class LoadingStore {
    */
   setIsLoading = (isLoading: boolean) => {
     if (isLoading) {
-      if (!this.isLoading) this.beginLoading(DEFAULT_LOADING_KEY);
+      if (!this.#hasHolders()) this.beginLoading(DEFAULT_LOADING_KEY);
       return;
     }
     this.#loadingEpoch += 1;
-    this._loadingCounts.clear();
+    this.#loadingCounts.clear();
   };
 
   /**
@@ -114,21 +108,26 @@ export class LoadingStore {
    * @computed
    */
   get isLoading() {
-    for (const count of this._loadingCounts.values()) {
+    return this.#hasHolders();
+  }
+
+  /** Reads internal counts only, so overriding `isLoading` cannot affect store logic. */
+  #hasHolders() {
+    for (const count of this.#loadingCounts.values()) {
       if (count > 0) return true;
     }
     return false;
   }
 
   #decrementKey(key: string) {
-    const next = Math.max(0, (this._loadingCounts.get(key) ?? 0) - 1);
-    if (next === 0) this._loadingCounts.delete(key);
-    else this._loadingCounts.set(key, next);
+    const next = Math.max(0, (this.#loadingCounts.get(key) ?? 0) - 1);
+    if (next === 0) this.#loadingCounts.delete(key);
+    else this.#loadingCounts.set(key, next);
   }
 
   #clearStickyDefaultAfterAbandonedEnd() {
-    if (this._loadingCounts.size !== 1) return;
-    if (!this.isLoadingFor(DEFAULT_LOADING_KEY)) return;
+    if (this.#loadingCounts.size !== 1) return;
+    if (!((this.#loadingCounts.get(DEFAULT_LOADING_KEY) ?? 0) > 0)) return;
     this.#decrementKey(DEFAULT_LOADING_KEY);
   }
 }

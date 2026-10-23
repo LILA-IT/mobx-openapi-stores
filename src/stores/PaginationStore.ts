@@ -155,7 +155,6 @@ export abstract class PaginationStore<
       _getPagesToFetch: false,
       _prefetchAdjacentPages: flow,
       _fetch: flow,
-      __apiCall: flow,
     });
     this._paginationState = observable({
       currentPage: 1,
@@ -641,31 +640,5 @@ export abstract class PaginationStore<
 
     // Prefer store state so a superseded exclusive fetch does not return stale payload.
     return this.getById(args.id) ?? result;
-  });
-
-  /**
-   * @protected
-   * @method __apiCall
-   * @description Invokes the inherited API call through a MobX flow.
-   * @template Endpoint - A valid API method name.
-   * @template Args - Arguments accepted by the endpoint.
-   * @param {Endpoint} apiCall - API endpoint to invoke.
-   * @param {Args extends undefined ? never : Args} args - Endpoint arguments.
-   * @param {FetchPagesApiOptions} [options] - Loading behavior.
-   * @returns {Promise<unknown>} The API result.
-   * @action
-   */
-  __apiCall = flow(function* <
-    Endpoint extends ApiMethodName<TApi>,
-    Args extends ApiMethodArgs<TApi, Endpoint>,
-  >(
-    this: PaginationStore<TApi, TSingle, TPageCollection>,
-    apiCall: Endpoint,
-    args: Args extends undefined ? never : Args,
-    { disableLoading = false }: FetchPagesApiOptions = {},
-  ) {
-    return (yield this.apiCall<TApi, Endpoint, Args>(apiCall, args, {
-      disableLoading,
-    })) as unknown;
   });
 }

@@ -8,6 +8,10 @@ import { expectBudget, observeSignal } from './helpers/reactivity';
 type Item = {
   id: number | string;
   name: string;
+  details?: {
+    address: { city: string };
+    tags: string[];
+  };
 };
 
 function createStore(): ObjectStore<ApiType, string | number, Item> {
@@ -146,6 +150,87 @@ describe('ObjectStore reactivity', () => {
     store.removeItem(99);
 
     expectBudget(handle, 0);
+    handle.dispose();
+  });
+
+  it('notifies when a deeply nested entry item property is mutated directly', () => {
+    store.setEntry('deep', [
+      {
+        id: 10,
+        name: 'Nested',
+        details: { address: { city: 'Berlin' }, tags: ['initial'] },
+      },
+    ]);
+    const handle = observeSignal(
+      () => store.getEntryById('deep')?.[0]?.details?.address.city ?? '',
+    );
+
+    const item = store.getEntryById('deep')?.[0];
+    if (!item?.details) throw new Error('Expected a nested entry item');
+    item.details.address.city = 'Hamburg';
+
+    expectBudget(handle, 1);
+    expect(handle.observer).toHaveBeenCalledWith('Hamburg', 'Berlin', expect.anything());
+    handle.dispose();
+  });
+
+  it('notifies when an item is pushed through a public entry getter', () => {
+    const handle = observeSignal(() => readEntrySnapshot(store, 'group-a'));
+
+    store.getEntryById('group-a')?.push({ id: 4, name: 'Delta' });
+
+    expectBudget(handle, 1);
+    expect(handle.observer).toHaveBeenCalledWith(
+      '1:Alpha,2:Beta,4:Delta',
+      '1:Alpha,2:Beta',
+      expect.anything(),
+    );
+    handle.dispose();
+  });
+
+  it('notifies when a nested entry item object is replaced directly', () => {
+    store.setEntry('deep', [
+      {
+        id: 10,
+        name: 'Nested',
+        details: { address: { city: 'Berlin' }, tags: ['initial'] },
+      },
+    ]);
+    const handle = observeSignal(
+      () => store.getEntryById('deep')?.[0]?.details?.address.city ?? '',
+    );
+
+    const item = store.getEntryById('deep')?.[0];
+    if (!item?.details) throw new Error('Expected a nested entry item');
+    item.details.address = { city: 'Cologne' };
+
+    expectBudget(handle, 1);
+    expect(handle.observer).toHaveBeenCalledWith('Cologne', 'Berlin', expect.anything());
+    handle.dispose();
+  });
+
+  it('notifies when a deeply nested entry item array is mutated directly', () => {
+    store.setEntry('deep', [
+      {
+        id: 10,
+        name: 'Nested',
+        details: { address: { city: 'Berlin' }, tags: ['initial'] },
+      },
+    ]);
+    const handle = observeSignal(
+      () => store.getEntryById('deep')?.[0]?.details?.tags.join(',') ?? '',
+    );
+
+    const item = store.getEntryById('deep')?.[0];
+    if (!item?.details) throw new Error('Expected a nested entry item');
+    item.details.tags.push('added');
+
+    expectBudget(handle, 1);
+    expect(handle.observer).toHaveBeenCalledWith(
+      'initial,added',
+      'initial',
+      expect.anything(),
+    );
     handle.dispose();
   });
 

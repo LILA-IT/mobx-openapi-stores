@@ -17,7 +17,7 @@ describe('ApiStore', () => {
     createApi: (config) => {
       return {
         configuration: config,
-      } as unknown as ApiType;
+      };
     },
   });
 

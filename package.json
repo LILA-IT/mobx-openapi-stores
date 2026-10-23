@@ -1,30 +1,32 @@
 {
   "name": "mobx-openapi-stores",
-  "version": "1.0.3",
+  "version": "2.0.0",
   "description": "A MobX-based store implementation for OpenAPI generated clients",
   "packageManager": "yarn@4.9.2",
   "type": "module",
-  "main": "./lib/index.js",
+  "main": "./lib/index.cjs",
   "module": "./lib/index.mjs",
   "types": "./lib/index.d.ts",
   "exports": {
     ".": {
       "types": "./lib/index.d.ts",
       "import": "./lib/index.mjs",
-      "require": "./lib/index.js"
+      "require": "./lib/index.cjs"
     }
   },
   "files": [
     "lib/",
     "README.md",
+    "MIGRATION.md",
     "LICENSE.md"
   ],
   "sideEffects": false,
   "scripts": {
     "clean": "rm -rf lib",
     "build": "tsup",
+    "check:package-exports": "node scripts/check-package-exports.mjs",
     "prepare": "lefthook install || true",
-    "prepublishOnly": "yarn build",
+    "prepublishOnly": "yarn build && yarn check:package-exports",
     "dev": "tsup --watch",
     "type-check": "tsc --noEmit",
     "openapi:generate": "bash scripts/generate-openapi-fixtures.sh",
@@ -43,31 +45,31 @@
     "commitlint": "commitlint"
   },
   "devDependencies": {
-    "@commitlint/cli": "^21",
-    "@commitlint/config-conventional": "^21",
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
     "@eslint/js": "^10",
-    "@openapitools/openapi-generator-cli": "^2.40.1",
+    "@openapitools/openapi-generator-cli": "^2.42.0",
     "@semantic-release/changelog": "^7",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/git": "^11",
     "@semantic-release/gitlab": "^13.3.3",
-    "@semantic-release/npm": "^13",
+    "@semantic-release/npm": "^13.2.0",
     "@semantic-release/release-notes-generator": "^14.1.1",
-    "@vitest/coverage-v8": "^4",
-    "eslint": "^10",
-    "fallow": "^3.16.0",
-    "jiti": "^2.7.0",
-    "lefthook": "^2.1.10",
-    "mobx": "^6.13.7",
-    "prettier": "^3.9.6",
-    "semantic-release": "^25",
-    "tsup": "^8.5.1",
-    "typescript": "~5.9.2",
-    "typescript-eslint": "^8.67.0",
-    "vitest": "^4"
+    "@vitest/coverage-v8": "^5",
+    "eslint": "^10.13.0",
+    "fallow": "^3.35.0",
+    "lefthook": "^2.2.2",
+    "mobx": "^7.1.0",
+    "prettier": "^3.9.10",
+    "semantic-release": "^25.0.9",
+    "tsup": "^9",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.0",
+    "vite": "^8.3.5",
+    "vitest": "^5"
   },
   "peerDependencies": {
-    "mobx": ">=6.0.0"
+    "mobx": "^6.0.0 || ^7.0.0"
   },
   "peerDependenciesMeta": {
     "mobx": {
@@ -75,7 +77,7 @@
     }
   },
   "resolutions": {
-    "typescript": "~5.9.2",
+    "typescript": "~6.0.3",
     "fallow-type-aware": "portal:./vendor/fallow-type-aware-stub"
   },
   "engines": {

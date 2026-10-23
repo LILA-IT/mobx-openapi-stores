@@ -1,4 +1,15 @@
-import { ResponseError } from '../../openapi-generator';
+const hasErrorResponse = (error: unknown): error is { response: Response } => {
+  if (typeof error !== 'object' || error === null || !('response' in error)) return false;
+  const { response } = error;
+  return (
+    typeof response === 'object' &&
+    response !== null &&
+    'text' in response &&
+    typeof response.text === 'function' &&
+    'status' in response &&
+    typeof response.status === 'number'
+  );
+};
 
 /**
  * Extracts a human-readable message from OpenAPI / fetch errors.
@@ -8,7 +19,7 @@ export const getErrorMessage = async (
   error: unknown,
   defaultMessage: string | undefined = 'Unknown error',
 ): Promise<string> => {
-  if (error instanceof ResponseError) {
+  if (hasErrorResponse(error)) {
     const response = error.response;
 
     try {

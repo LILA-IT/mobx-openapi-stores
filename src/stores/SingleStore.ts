@@ -1,20 +1,20 @@
 import { action, computed, makeObservable, observable, set } from 'mobx';
 
 import { ApiStore } from './ApiStore';
-import { type ApiConfig, type ApiType } from '../types/ApiType';
+import { type ApiConfiguration, type ApiType } from '../types/ApiType';
 import { type SingleType } from '../types';
 
 /** Store for one observable entity, layered on top of {@link ApiStore}. */
 export class SingleStore<
   TApi extends ApiType,
   TSingle extends SingleType,
-> extends ApiStore<TApi> {
+  TConfig extends ApiConfiguration = ApiConfiguration,
+> extends ApiStore<TApi, TConfig> {
   #current = observable.object({ value: null as TSingle | null });
 
   /** Creates a store from a name or API factory options. */
   constructor(
-    nameOrOptions?:
-      string | { name?: string; createApi?: (config: ApiConfig<TApi>) => TApi },
+    nameOrOptions?: string | { name?: string; createApi?: (config: TConfig) => TApi },
   ) {
     super(nameOrOptions); // Pass through to ApiStore which handles the parsing
 

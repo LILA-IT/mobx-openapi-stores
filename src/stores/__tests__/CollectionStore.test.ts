@@ -114,7 +114,7 @@ describe('CollectionStore', () => {
     createApi: (config) => {
       return {
         configuration: config,
-      } as unknown as ApiType;
+      };
     },
   });
 
