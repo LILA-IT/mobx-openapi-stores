@@ -192,7 +192,15 @@ export class ApiStore<
     return generation;
   }
 
-  /** Whether a generation is still latest for an exclusive key. */
+  /**
+   * Whether a generation is still latest for an exclusive key.
+   *
+   * Returns `false` once the latest call for that key has settled: `apiCall` prunes the key
+   * then, so no generation is current any more. Check it while the call is in flight (for
+   * example before applying a result), not after it has finished. A key you only started
+   * with {@link beginExclusiveCall} is never pruned by the store, so it stays current until
+   * a newer call begins.
+   */
   isApiCallCurrent(exclusiveKey: string, generation: number) {
     return this.#apiCallGenerations.get(exclusiveKey) === generation;
   }

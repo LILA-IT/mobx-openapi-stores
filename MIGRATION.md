@@ -40,7 +40,15 @@ Stores now depend only on the structural shape of your generated client.
 
 # Stale and aborted requests (opt-in)
 
-New in the 2.x minor after 2.0.1; nothing changes unless you opt in.
+New in the 2.x minor after 2.0.1. The new options are opt-in, but a few default
+behaviours changed for every consumer:
+
+- A superseded `fetchPage` call now resolves `undefined` instead of applying its page.
+- A superseded or aborted failure is no longer logged through `handleError`.
+- A failed background prefetch is logged with `console.warn` instead of surfacing as an
+  unhandled rejection.
+
+Details:
 
 - `apiCall` takes `signal` (forwarded to the endpoint as `{ signal }`), `isStale(error)`
   and `staleResult: 'marker'`. Without `staleResult`, a superseded or aborted call

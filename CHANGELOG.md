@@ -1,3 +1,10 @@
+# [2.2.0](https://github.com/LILA-IT/mobx-openapi-stores/compare/v2.1.0...v2.2.0) (2026-11-26)
+
+
+### Features
+
+* **utils:** accept a configurable default message in handleError ([1fca4cf](https://github.com/LILA-IT/mobx-openapi-stores/commit/1fca4cfe16382e3e933863e095cfd685854808c8)), closes [#2](https://github.com/LILA-IT/mobx-openapi-stores/issues/2)
+
 # [2.1.0](https://github.com/LILA-IT/mobx-openapi-stores/compare/v2.0.1...v2.1.0) (2026-11-26)
 
 

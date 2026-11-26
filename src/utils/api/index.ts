@@ -13,5 +13,6 @@ export {
   isAbortError,
   isStaleResult,
 };
+export type { HandleErrorOptions } from './handleError';
 export type { StaleReason, StaleResult } from './stale';
 export type { FlowGenerator } from './flow';

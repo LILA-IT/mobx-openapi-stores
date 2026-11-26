@@ -516,6 +516,22 @@ class PostCommentsStore extends ObjectStore<
 
 ---
 
+## Error handling helpers
+
+`handleError(error, options?)` logs a normalized message with `console.error` and throws a new `Error` with that message and the original error as `cause`. `getErrorMessage(error, defaultMessage?)` is the underlying extractor.
+
+When no message can be extracted from an error (for example it is `undefined`), the fallback is the English `'Unknown error'`. Pass `defaultMessage` to localise it:
+
+```ts
+try {
+  await somethingThatMayThrow();
+} catch (error) {
+  await handleError(error, { defaultMessage: 'Unbekannter Fehler' });
+}
+```
+
+Without the option nothing changes.
+
 ## General Principles
 
 - **`makeObservable`**: Remember to call `makeObservable` in your subclasses for any new `action`, `computed`, `flow`, or `observable` properties you define. Base store properties are already made observable.
