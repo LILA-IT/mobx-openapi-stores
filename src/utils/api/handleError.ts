@@ -13,6 +13,26 @@ export type HandleErrorOptions = {
 };
 
 /**
+ * Builds the message {@link handleError} logs and throws.
+ * @internal
+ */
+export const getHandledErrorMessage = (
+  err: unknown,
+  options?: HandleErrorOptions,
+): Promise<string> =>
+  getErrorMessage(err, resolveDefaultErrorMessage(options?.defaultMessage));
+
+/**
+ * Logs a message from {@link getHandledErrorMessage} and returns the `Error` that
+ * {@link handleError} throws.
+ * @internal
+ */
+export const logHandledError = (msg: string, err: unknown): Error => {
+  console.error('Error Message:', msg, err);
+  return new Error(msg, { cause: err });
+};
+
+/**
  * Logs a normalized message and throws a new error preserving the original cause.
  * Pass `options.defaultMessage` to replace the fallback message for this call, or call
  * `setDefaultErrorMessage` to replace it package-wide.
@@ -21,10 +41,5 @@ export const handleError = async (
   err: unknown,
   options?: HandleErrorOptions,
 ): Promise<never> => {
-  const msg = await getErrorMessage(
-    err,
-    resolveDefaultErrorMessage(options?.defaultMessage),
-  );
-  console.error('Error Message:', msg, err);
-  throw new Error(msg, { cause: err });
+  throw logHandledError(await getHandledErrorMessage(err, options), err);
 };

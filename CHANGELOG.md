@@ -1,3 +1,10 @@
+## [2.3.1](https://github.com/LILA-IT/mobx-openapi-stores/compare/v2.3.0...v2.3.1) (2026-11-26)
+
+
+### Bug Fixes
+
+* **api-store:** re-check staleness after the error message is read ([0ceb7db](https://github.com/LILA-IT/mobx-openapi-stores/commit/0ceb7db9a01971f08dda24d4a213dae4ee691654)), closes [#8](https://github.com/LILA-IT/mobx-openapi-stores/issues/8)
+
 # [2.3.0](https://github.com/LILA-IT/mobx-openapi-stores/compare/v2.2.0...v2.3.0) (2026-11-26)
 
 

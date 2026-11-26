@@ -1,7 +1,7 @@
 import { action, computed, flow, makeObservable, observable } from 'mobx';
 
 import { type ApiConfig, type ApiResult, type ApiType } from '../types/ApiType';
-import { handleError } from '../utils/api';
+import { getHandledErrorMessage, logHandledError } from '../utils/api/handleError';
 import { invokeEndpoint } from '../utils/api/apiCall';
 import {
   abortReason,
@@ -18,7 +18,9 @@ import { LoadingStore } from './LoadingStore';
  * Options for {@link ApiStore.apiCall}.
  *
  * A call is *stale* when a newer call with the same `exclusiveKey` started, when its
- * `signal` was aborted, or when it failed and `isStale(error)` returned `true`.
+ * `signal` was aborted, or when it failed and `isStale(error)` returned `true`. A failure
+ * is checked again after its error message is read (that can await the response body), so
+ * a newer call that starts meanwhile still makes it stale.
  * A stale call never runs `apply` and never logs through `handleError`. How it settles
  * depends on `staleResult`:
  * - default: a stale success resolves with its (unapplied) response, and a stale failure
@@ -261,14 +263,22 @@ export class ApiStore<
           signal ? { signal } : undefined,
         );
       } catch (error) {
-        const reason = staleReason() ?? (isStale?.(error) ? 'dropped' : undefined);
-        if (!reason)
-          return (yield handleError(error, {
-            defaultMessage: defaultErrorMessage,
-          })) as never;
+        const settledStale = staleReason() ?? (isStale?.(error) ? 'dropped' : undefined);
+        if (settledStale) {
+          if (staleResult === 'marker') return createStaleResult(settledStale, error);
+          // Same rejection as before, without the handleError log.
+          return (yield toApiError(error)) as never;
+        }
+        // Building the message can read the response body, and a newer call may start
+        // meanwhile. Check again before logging or settling as the current call.
+        const message = (yield getHandledErrorMessage(error, {
+          defaultMessage: defaultErrorMessage,
+        })) as string;
+        const reason = staleReason();
+        if (!reason) throw logHandledError(message, error);
         if (staleResult === 'marker') return createStaleResult(reason, error);
-        // Same rejection as before, without the handleError log.
-        return (yield toApiError(error)) as never;
+        // Same rejection as handleError, without its log.
+        throw new Error(message, { cause: error });
       }
       const reason = staleReason();
       if (reason) return staleResult === 'marker' ? createStaleResult(reason) : result;
