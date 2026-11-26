@@ -6,7 +6,7 @@ import { ObjectStore } from './ObjectStore';
 import { PaginationStore } from './PaginationStore';
 import { SingleStore } from './SingleStore';
 
-export type { ApiCallOptions } from './ApiStore';
+export type { ApiCallMethod, ApiCallOptions } from './ApiStore';
 export type { CrudFetchOptions } from './CrudCollectionStore';
 export type {
   FetchPageOptions,

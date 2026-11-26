@@ -102,7 +102,8 @@ Extends `LoadingStore`. Manages an instance of your OpenAPI-generated API client
 - `apiIsSet: boolean` (computed): True if the API client is initialized.
 - `setApi(api: TApi)` (action): Sets the API client.
 - `initApi(config: TConfig)` (action, **must be implemented by subclasses**): Initializes and sets the API client.
-- `apiCall(endpoint, args, options?)` (flow): Calls an endpoint on `this.api`. Uses keyed loading refcount unless `disableLoading` is set (`loadingKey` defaults to the endpoint via `getLoadingKey`; override or pass `loadingKey` for swiss-army scoping). Optional `apply(result)` runs after success; with `exclusiveKey`, only the latest started call for that key applies (ignore-stale for replacement reads).
+- `apiCall(endpoint, args, options?)` (flow): Calls an endpoint on `this.api`. Uses keyed loading refcount unless `disableLoading` is set (`loadingKey` defaults to the endpoint via `getLoadingKey`; override or pass `loadingKey` for swiss-army scoping). Optional `apply(result)` runs after success; with `exclusiveKey`, only the latest started call for that key applies (ignore-stale for replacement reads). `signal`, `isStale` and the opt-in `staleResult: 'marker'` handle aborted and dropped requests; see [Stale and aborted requests](#stale-and-aborted-requests).
+- `beginExclusiveCall(key)` / `isApiCallCurrent(key, generation)`: The last-call-wins generation behind `exclusiveKey`, for guarding custom requests.
 - `getLoadingKey(endpoint, args)`: Default loading scope (`String(endpoint)`); override to include ids/args.
 - `isLoadingFor(key)`: Inherited keyed loading probe (see `LoadingStore`).
 
@@ -140,6 +141,44 @@ class PetApiService extends ApiStore<PetApi, PetApiConfig> {
 // petStore.initApi(new PetApiConfig({ basePath: "http://localhost:3000/api" }));
 // petStore.fetchPetById(1).then(pet => console.log(pet));
 ```
+
+#### Stale and aborted requests
+
+A call is **stale** when:
+
+- a newer call with the same `exclusiveKey` started (`reason: 'superseded'`),
+- its `signal` was aborted (`reason: 'aborted'`), or
+- it failed and its `isStale(error)` option returned `true` (`reason: 'dropped'`).
+
+A stale call never runs `apply` and never logs through `handleError`, and it leaves loading state clean. How it settles depends on the `staleResult` option:
+
+| `staleResult`       | stale success                        | stale failure                                                            | result type                |
+| ------------------- | ------------------------------------ | ------------------------------------------------------------------------ | -------------------------- |
+| not set (default)   | resolves with its unapplied response | rejects with the `handleError`-style `Error` (original error as `cause`) | unchanged                  |
+| `'marker'` (opt-in) | resolves with a `StaleResult`        | resolves with a `StaleResult` (`error` holds the original error)         | `ApiResult \| StaleResult` |
+
+```typescript
+import { isAbortError, isStaleResult } from 'mobx-openapi-stores';
+
+const result = await store.apiCall(
+  'listPets',
+  { q },
+  {
+    exclusiveKey: 'list', // last call wins
+    signal: controller.signal, // forwarded to the endpoint as `{ signal }` (initOverrides)
+    isStale: (error) => isAbortError(error), // e.g. the app aborted it in its own fetch layer
+    staleResult: 'marker', // opt in: resolve stale calls with a StaleResult
+    apply: (pets) => store.setCollection(pets as Pet[]),
+  },
+);
+if (isStaleResult(result)) return; // a newer call or an abort owns the state
+```
+
+`signal` is passed to the endpoint only when you set it. `isStale` receives the original error. Failures that are not stale reject with the `Error` from `handleError`, with the original error as its `cause`; `isAbortError(error)` walks that `cause` chain.
+
+`PaginationStore.fetchPage` is last-call-wins per store: when a newer `fetchPage` starts (a cache hit counts), the older one applies nothing, does not reject, and resolves `undefined` (already part of its return type). A prefetch of neighbour pages is applied only while its params are still the latest ones, and a failed prefetch never rejects.
+
+See [MIGRATION.md](MIGRATION.md#stale-and-aborted-requests-opt-in) for replacing local workarounds.
 
 ---
 

@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/LILA-IT/mobx-openapi-stores/compare/v2.0.1...v2.1.0) (2026-11-26)
+
+
+### Features
+
+* **stores:** opt-in stale results for apiCall, last-call-wins fetchPage ([3219831](https://github.com/LILA-IT/mobx-openapi-stores/commit/32198313c2433b4036d095a0883231d8088cdb58)), closes [#4](https://github.com/LILA-IT/mobx-openapi-stores/issues/4) [#5](https://github.com/LILA-IT/mobx-openapi-stores/issues/5) [#6](https://github.com/LILA-IT/mobx-openapi-stores/issues/6)
+
 ## [2.0.1](https://github.com/LILA-IT/mobx-openapi-stores/compare/v2.0.0...v2.0.1) (2026-11-26)
 
 

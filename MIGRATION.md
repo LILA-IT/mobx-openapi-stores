@@ -37,3 +37,28 @@ Stores now depend only on the structural shape of your generated client.
   dropped fields from `current` while the collection entry kept them. A
   different-ID update is still selected as `current` when `setCurrent` is true.
   Tests that pin the replace behaviour need updating.
+
+# Stale and aborted requests (opt-in)
+
+New in the 2.x minor after 2.0.1; nothing changes unless you opt in.
+
+- `apiCall` takes `signal` (forwarded to the endpoint as `{ signal }`), `isStale(error)`
+  and `staleResult: 'marker'`. Without `staleResult`, a superseded or aborted call
+  settles as in 2.0 (a success resolves with its unapplied response, a failure
+  rejects), but it no longer logs through `handleError`.
+- With `staleResult: 'marker'`, a stale call resolves with a `StaleResult` (check it
+  with `isStaleResult`) and never rejects; the result type includes `StaleResult`.
+- `isAbortError(error)` walks the `cause` chain of errors wrapped by `handleError`.
+- `beginExclusiveCall(key)` returns a generation for `isApiCallCurrent(key, generation)`.
+- `PaginationStore.fetchPage` is now last-call-wins: a superseded call resolves
+  `undefined` and applies nothing. A failed background prefetch is logged with
+  `console.warn` instead of an unhandled rejection.
+
+Local workarounds you can drop:
+
+- a request counter that ignores late responses: use `exclusiveKey` (with
+  `staleResult: 'marker'` if the caller must know), or rely on `fetchPage`;
+- walking the `cause` chain to recognise aborted or session-ended requests: pass
+  `isStale` once in your typed `call` wrapper (for example
+  `isStale: isSessionEndedError`) together with `staleResult: 'marker'`, or use
+  `isAbortError`.

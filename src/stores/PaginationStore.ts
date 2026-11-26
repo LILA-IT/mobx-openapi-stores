@@ -2,8 +2,12 @@ import { action, computed, flow, makeObservable, observable } from 'mobx';
 
 import { type ArrayElement, type SingleType } from '../types';
 import { type ApiType } from '../types/ApiType';
+import { isStaleResult } from '../utils/api/stale';
 import type { ApiMethodArgs, ApiMethodName } from '../utils/api/types/ApiMethod.type';
 import { SingleStore } from './SingleStore';
+
+/** Exclusive key that makes `fetchPage` last-call-wins within one store. */
+const FETCH_PAGE_EXCLUSIVE_KEY = 'PaginationStore:fetchPage';
 
 type PaginationStateInternal = {
   currentPage: number;
@@ -105,6 +109,9 @@ export abstract class PaginationStore<
    * @observable
    */
   _prefetchCount: number;
+
+  /** Cache key of the params of the latest `fetchPage` call. */
+  #latestFetchParamsKey: string | undefined;
 
   /**
    * @constructor
@@ -315,11 +322,14 @@ export abstract class PaginationStore<
    * @description Loads a page using effective query parameters. A compatible
    * cached page may be returned immediately; otherwise the API is called, the
    * cache and pagination state are updated, and adjacent prefetching begins.
+   * Last call wins: when a newer `fetchPage` starts (including a cache hit) before
+   * this one settles, this call applies nothing, sets no error, does not reject, and
+   * resolves `undefined`. Its prefetch is skipped too.
    * @param {number} [page=1] - One-based page number.
    * @param {Partial<FetchPageParams>} [params] - Query overrides.
    * @param {FetchPageOptions} [options] - Cache and loading behavior.
    * @returns {Promise<PaginatedPage<TPageCollection> | undefined>} The requested
-   * page, or `undefined` when the API returns no response.
+   * page, or `undefined` when the API returns no response or the call was superseded.
    * @action
    */
   fetchPage = flow(function* (
@@ -336,6 +346,8 @@ export abstract class PaginationStore<
       pageSize,
       sort,
     };
+    const generation = this.beginExclusiveCall(FETCH_PAGE_EXCLUSIVE_KEY);
+    this.#latestFetchParamsKey = this._buildCacheKey(fetchParams);
     const cachedPage = this._pagesCache.get(page);
     const isCacheHit = useCache && cachedPage && this._paramsMatchCache(fetchParams);
 
@@ -350,9 +362,18 @@ export abstract class PaginationStore<
 
     if (!this._paramsMatchCache(fetchParams)) this._invalidateCache();
 
-    const response = (yield this._fetchPagesApi([page], fetchParams, {
-      disableLoading,
-    })) as unknown as MultiPageResponse<TPageCollection> | undefined;
+    let rawResponse: unknown;
+    try {
+      rawResponse = yield this._fetchPagesApi([page], fetchParams, {
+        disableLoading,
+      });
+    } catch (error) {
+      if (!this.isApiCallCurrent(FETCH_PAGE_EXCLUSIVE_KEY, generation)) return undefined;
+      throw error;
+    }
+    if (!this.isApiCallCurrent(FETCH_PAGE_EXCLUSIVE_KEY, generation)) return undefined;
+    if (isStaleResult(rawResponse)) return undefined;
+    const response = rawResponse as MultiPageResponse<TPageCollection> | undefined;
     void this._prefetchAdjacentPages(page, fetchParams);
     if (!response) return undefined;
 
@@ -376,6 +397,10 @@ export abstract class PaginationStore<
    * @protected
    * @method _prefetchAdjacentPages
    * @description Fetches uncached neighboring pages within `_prefetchCount`.
+   * The response is applied only while `fetchParams` are still the params of the
+   * latest `fetchPage` call and of the cached pages, so a prefetch for an older
+   * parameter set never lands in the cache. Failures are caught: a prefetch never
+   * rejects.
    * @param {number} page - The page around which to prefetch.
    * @param {FetchPageParams} fetchParams - Effective request parameters.
    * @returns {Promise<void>}
@@ -391,10 +416,22 @@ export abstract class PaginationStore<
     );
     if (pagesToPrefetch.length === 0) return;
 
-    const response = (yield this._fetchPagesApi(pagesToPrefetch, fetchParams, {
-      disableLoading: true,
-    })) as unknown as MultiPageResponse<TPageCollection> | undefined;
-    if (response) this._setPagesFromResponse(response);
+    const isForLatestParams = () =>
+      this.#latestFetchParamsKey === this._buildCacheKey(fetchParams) &&
+      this._paramsMatchCache(fetchParams);
+    let rawResponse: unknown;
+    try {
+      rawResponse = yield this._fetchPagesApi(pagesToPrefetch, fetchParams, {
+        disableLoading: true,
+      });
+    } catch (error) {
+      // Prefetch runs in the background (`void`), so never reject: a rethrow would be an
+      // unhandled rejection. Report failures for the latest params only.
+      if (isForLatestParams()) console.warn(`[${this.name}] Prefetch failed`, error);
+      return;
+    }
+    if (!rawResponse || isStaleResult(rawResponse) || !isForLatestParams()) return;
+    this._setPagesFromResponse(rawResponse as MultiPageResponse<TPageCollection>);
   });
 
   /**

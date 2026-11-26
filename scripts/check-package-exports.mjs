@@ -15,6 +15,8 @@ const expectedExports = [
   'callApi',
   'getErrorMessage',
   'handleError',
+  'isAbortError',
+  'isStaleResult',
   'toFlowGeneratorFunction',
 ].sort();
 
@@ -29,4 +31,4 @@ const cjsExports = Object.keys(require(cjsEntry)).sort();
 assert.deepEqual(esmExports, expectedExports, 'ESM entry point exports changed');
 assert.deepEqual(cjsExports, expectedExports, 'CommonJS entry point exports changed');
 
-assert.equal(expectedExports.length, 12);
+assert.equal(expectedExports.length, 14);

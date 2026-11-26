@@ -7,8 +7,10 @@
  * - nominative vs structural Configuration (generator private-field classes)
  * - dual init (`createApi` + `initApi`) and dual ctor forms
  * - ObjectStore `'single'` | `'collection'` modes
+ * - `apiCall` result type with and without stale-capable options
  */
 export type { MultiStoreEndpointFixture } from './generated-shaped/endpoint-isolation';
 export type { StructuralConfigFixture } from './generated-shaped/structural-configuration';
 export { multiStoreEndpointCalls } from './multi-store-endpoint-calls';
 export { objectStoreModeCalls } from './object-store-modes';
+export { staleResultTypes } from './stale-result-types';
