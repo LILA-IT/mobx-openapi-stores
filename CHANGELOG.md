@@ -1,3 +1,10 @@
+## [2.3.2](https://github.com/LILA-IT/mobx-openapi-stores/compare/v2.3.1...v2.3.2) (2026-11-26)
+
+
+### Bug Fixes
+
+* **api-store:** use the configured default message for stale rejections ([6a76ee1](https://github.com/LILA-IT/mobx-openapi-stores/commit/6a76ee1dff798b087cad9e0e898a40cbfe59cab9))
+
 ## [2.3.1](https://github.com/LILA-IT/mobx-openapi-stores/compare/v2.3.0...v2.3.1) (2026-11-26)
 
 

@@ -61,8 +61,11 @@ export const isAbortError = (error: unknown): boolean => {
  * Rejects with the same `Error` that `handleError` throws, without logging.
  * @internal
  */
-export const toApiError = async (error: unknown): Promise<never> => {
-  throw new Error(await getErrorMessage(error), { cause: error });
+export const toApiError = async (
+  error: unknown,
+  defaultMessage?: string,
+): Promise<never> => {
+  throw new Error(await getErrorMessage(error, defaultMessage), { cause: error });
 };
 
 /**

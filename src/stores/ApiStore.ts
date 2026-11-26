@@ -2,6 +2,7 @@ import { action, computed, flow, makeObservable, observable } from 'mobx';
 
 import { type ApiConfig, type ApiResult, type ApiType } from '../types/ApiType';
 import { getHandledErrorMessage, logHandledError } from '../utils/api/handleError';
+import { resolveDefaultErrorMessage } from '../utils/api/defaultErrorMessage';
 import { invokeEndpoint } from '../utils/api/apiCall';
 import {
   abortReason,
@@ -252,7 +253,10 @@ export class ApiStore<
       if (signal?.aborted) {
         const error = abortReason(signal);
         if (staleResult === 'marker') return createStaleResult('aborted', error);
-        return (yield toApiError(error)) as never;
+        return (yield toApiError(
+          error,
+          resolveDefaultErrorMessage(defaultErrorMessage),
+        )) as never;
       }
       let result: unknown;
       try {
@@ -267,7 +271,10 @@ export class ApiStore<
         if (settledStale) {
           if (staleResult === 'marker') return createStaleResult(settledStale, error);
           // Same rejection as before, without the handleError log.
-          return (yield toApiError(error)) as never;
+          return (yield toApiError(
+            error,
+            resolveDefaultErrorMessage(defaultErrorMessage),
+          )) as never;
         }
         // Building the message can read the response body, and a newer call may start
         // meanwhile. Check again before logging or settling as the current call.
