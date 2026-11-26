@@ -530,7 +530,32 @@ try {
 }
 ```
 
-Without the option nothing changes.
+Without the option nothing changes. An empty `defaultMessage` counts as unset.
+
+### Default error message
+
+`callApi` and `ApiStore.apiCall` also go through `handleError`. To localise the fallback once for every path, call `setDefaultErrorMessage` at app start:
+
+```ts
+import { setDefaultErrorMessage } from 'mobx-openapi-stores';
+
+setDefaultErrorMessage('Unbekannter Fehler');
+```
+
+Override it for a single call with `defaultErrorMessage`:
+
+```ts
+await callApi('fetchItem', { id: 1 }, api, {
+  defaultErrorMessage: 'Eintrag nicht ladbar',
+});
+await store.apiCall(
+  'fetchItem',
+  { id: 1 },
+  { defaultErrorMessage: 'Eintrag nicht ladbar' },
+);
+```
+
+Precedence: per call (`defaultMessage` / `defaultErrorMessage`), then the package default, then the English `'Unknown error'`. Empty strings count as unset. `setDefaultErrorMessage(undefined)` resets to `'Unknown error'`; use it in test teardown so the setting does not leak between tests. The package default is module state, so it applies to every store in the same copy of the package. Without configuration nothing changes.
 
 ## General Principles
 

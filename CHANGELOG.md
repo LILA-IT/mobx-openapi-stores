@@ -1,3 +1,10 @@
+# [2.3.0](https://github.com/LILA-IT/mobx-openapi-stores/compare/v2.2.0...v2.3.0) (2026-11-26)
+
+
+### Features
+
+* **api:** configurable default error message ([18bd23a](https://github.com/LILA-IT/mobx-openapi-stores/commit/18bd23a30d6b0c2b654b06e661753f5f0505c413)), closes [#7](https://github.com/LILA-IT/mobx-openapi-stores/issues/7)
+
 # [2.2.0](https://github.com/LILA-IT/mobx-openapi-stores/compare/v2.1.0...v2.2.0) (2026-11-26)
 
 

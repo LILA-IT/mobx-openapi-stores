@@ -37,9 +37,19 @@ export const invokeEndpoint = async <
   return (await pending) as EndpointResult<Api, Endpoint>;
 };
 
+/** Options for {@link callApi}. */
+export type CallApiOptions = {
+  /**
+   * Message used when none can be extracted from the error. Takes precedence over the
+   * package default from `setDefaultErrorMessage`. An empty string counts as unset.
+   */
+  defaultErrorMessage?: string;
+};
+
 /**
  * Invokes a generated client method with the client as `this`.
- * Errors are normalized and rethrown through {@link handleError}.
+ * Errors are normalized and rethrown through {@link handleError}; pass
+ * `options.defaultErrorMessage` to localise the fallback message for this call.
  */
 export const callApi = async <
   Api extends ApiType,
@@ -49,10 +59,11 @@ export const callApi = async <
   apiCall: Endpoint,
   args: Args extends undefined ? never : Args,
   api?: Api,
+  options?: CallApiOptions,
 ) => {
   try {
     return await invokeEndpoint<Api, Endpoint>(apiCall, args, api);
   } catch (err) {
-    await handleError(err);
+    await handleError(err, { defaultMessage: options?.defaultErrorMessage });
   }
 };

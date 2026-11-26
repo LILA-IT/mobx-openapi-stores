@@ -56,6 +56,11 @@ export type ApiCallOptions = {
    * its response or a rejection, and the result type includes `StaleResult`.
    */
   staleResult?: 'marker';
+  /**
+   * Message used when none can be extracted from a failure. Takes precedence over the
+   * package default from `setDefaultErrorMessage`. An empty string counts as unset.
+   */
+  defaultErrorMessage?: string;
 };
 
 /**
@@ -223,6 +228,7 @@ export class ApiStore<
       signal,
       isStale,
       staleResult,
+      defaultErrorMessage,
     }: ApiCallOptions = {},
   ) {
     const generation =
@@ -256,7 +262,10 @@ export class ApiStore<
         );
       } catch (error) {
         const reason = staleReason() ?? (isStale?.(error) ? 'dropped' : undefined);
-        if (!reason) return (yield handleError(error)) as never;
+        if (!reason)
+          return (yield handleError(error, {
+            defaultMessage: defaultErrorMessage,
+          })) as never;
         if (staleResult === 'marker') return createStaleResult(reason, error);
         // Same rejection as before, without the handleError log.
         return (yield toApiError(error)) as never;
