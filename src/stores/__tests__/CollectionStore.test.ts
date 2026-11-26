@@ -174,3 +174,82 @@ describe('CollectionStore', () => {
     ]);
   });
 });
+
+describe('CollectionStore.editItem current handling', () => {
+  type Product = { id: number; name: string; prices: number[] };
+
+  const createStore = () => {
+    const store = new CollectionStore<ApiType, Product>({
+      name: 'EditItemStore',
+    });
+    store.setCollection([
+      { id: 1, name: 'One', prices: [10] },
+      { id: 2, name: 'Two', prices: [20] },
+    ]);
+    return store;
+  };
+
+  it('merges a partial update into current when the ids match', () => {
+    const store = createStore();
+    store.setCurrent(store.collection[0]);
+
+    store.editItem({ id: 1, name: 'One renamed' } as Product);
+
+    expect(store.current).toEqual({
+      id: 1,
+      name: 'One renamed',
+      prices: [10],
+    });
+  });
+
+  it('keeps current and the collection entry consistent after a partial update', () => {
+    const store = createStore();
+    store.setCurrent(store.collection[0]);
+
+    store.editItem({ id: 1, name: 'One renamed' } as Product);
+
+    expect(store.collection[0]).toEqual(store.current);
+    expect(store.getById(1)).toEqual({
+      id: 1,
+      name: 'One renamed',
+      prices: [10],
+    });
+  });
+
+  it('merges into a matching current even when setCurrent is false', () => {
+    const store = createStore();
+    store.setCurrent(store.collection[0]);
+
+    store.editItem({ id: 1, name: 'Changed' } as Product, false);
+
+    expect(store.current).toEqual({ id: 1, name: 'Changed', prices: [10] });
+  });
+
+  it('selects the update as current when the ids differ and setCurrent is true', () => {
+    const store = createStore();
+    store.setCurrent(store.collection[0]);
+
+    store.editItem({ id: 2, name: 'Two renamed', prices: [] });
+
+    expect(store.current).toEqual({ id: 2, name: 'Two renamed', prices: [] });
+    expect(store.collection[1]).toEqual({
+      id: 2,
+      name: 'Two renamed',
+      prices: [],
+    });
+  });
+
+  it('leaves a different current unchanged when setCurrent is false', () => {
+    const store = createStore();
+    store.setCurrent(store.collection[0]);
+
+    store.editItem({ id: 2, name: 'Two renamed' } as Product, false);
+
+    expect(store.current).toEqual({ id: 1, name: 'One', prices: [10] });
+    expect(store.collection[1]).toEqual({
+      id: 2,
+      name: 'Two renamed',
+      prices: [20],
+    });
+  });
+});

@@ -221,7 +221,7 @@ Extends `SingleStore`. Manages a collection (array) of observable entities. The 
 - `setCollection(newCollection: TCollection)` (action): Replaces the entire collection.
 - `addItem(newItem: TSingle, setCurrent?: boolean)` (action): Adds an item.
 - `setItem(item: TSingle, setCurrent?: boolean)` (action): Updates an existing item or adds it if not present.
-- `editItem(updatedItem: TSingle, setCurrent?: boolean)` (action): Merges updates into an existing item by ID.
+- `editItem(updatedItem: TSingle, setCurrent?: boolean)` (action): Merges updates into the collection item and into `current` when it has the same ID.
 - `removeItem(id: TSingle['id'])` (action): Removes an item by ID.
 - `getById(id: TSingle['id']): TSingle | undefined`: Retrieves an item by ID (checks `current` first, then `collection`).
 

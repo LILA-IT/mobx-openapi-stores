@@ -116,15 +116,24 @@ export class CollectionStore<
    * @method editItem
    * @description Merges an update into every collection item with the same ID
    * using `Object.assign`, then publishes via native `Array.map` + `setCollection`.
+   * `current` is handled the same way as in `PaginationStore`: when it has the
+   * same ID it is merged with the update (so partial updates keep their other
+   * fields); otherwise, if `setCurrent` is true, the update becomes `current`
+   * as given. A `current` with a different ID is left unchanged when
+   * `setCurrent` is false.
    * @param {TSingle} updatedItem - The item data to merge, including its ID.
    * @param {boolean} [setCurrent=true] - Whether to select the update. A
-   * matching current item is always updated.
+   * matching current item is always merged.
    * @returns {void}
    * @action
    */
   editItem = (updatedItem: TSingle, setCurrent: boolean = true) => {
     if (setCurrent || this.current?.id === updatedItem.id) {
-      this.setCurrent(updatedItem);
+      this.setCurrent(
+        this.current?.id === updatedItem.id
+          ? Object.assign({}, this.current, updatedItem)
+          : updatedItem,
+      );
     }
     this.setCollection(
       this.#collection.value.map((itemInCollection) =>

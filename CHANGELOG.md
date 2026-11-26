@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/LILA-IT/mobx-openapi-stores/compare/v2.0.0...v2.0.1) (2026-11-26)
+
+
+### Bug Fixes
+
+* **stores:** merge CollectionStore.editItem updates into current ([dbbfad1](https://github.com/LILA-IT/mobx-openapi-stores/commit/dbbfad15823f5a10a2b6a6a40bf2324cb2b95c71)), closes [#3](https://github.com/LILA-IT/mobx-openapi-stores/issues/3)
+
 # [2.0.0](https://github.com/LILA-IT/mobx-openapi-stores/compare/v1.0.3...v2.0.0) (2026-10-23)
 
 

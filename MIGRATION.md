@@ -28,3 +28,12 @@ Stores now depend only on the structural shape of your generated client.
   CommonJS bundle was emitted as `lib/index.js` inside a `"type": "module"`
   package, so `require` returned no store exports.
 - The `mobx` peer range is `^6.0.0 || ^7.0.0`.
+
+## 2.0.1 behaviour fix
+
+- `CollectionStore.editItem` (and so `CrudCollectionStore` updates) now merges
+  the update into `current` when `current.id` matches, like `PaginationStore`
+  already did. In 2.0.0 `current` was replaced, so a partial update response
+  dropped fields from `current` while the collection entry kept them. A
+  different-ID update is still selected as `current` when `setCurrent` is true.
+  Tests that pin the replace behaviour need updating.
