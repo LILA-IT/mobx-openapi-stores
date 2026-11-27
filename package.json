@@ -78,7 +78,8 @@
   },
   "resolutions": {
     "typescript": "~6.0.3",
-    "fallow-type-aware": "portal:./vendor/fallow-type-aware-stub"
+    "fallow-type-aware": "portal:./vendor/fallow-type-aware-stub",
+    "get-uri": "8.0.2"
   },
   "engines": {
     "node": ">=18"
